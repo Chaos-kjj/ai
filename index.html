@@ -1,9 +1,9 @@
-
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能单词本 - 带删除功能</title>
+    <title>智能单词本 - 带朗读功能</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 1rem; }
@@ -19,35 +19,44 @@
         .review-list-view { display: none; padding: 1rem 1.5rem; background: #fff; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: left; max-height: 500px; overflow-y: auto;}
         .review-list-view h3 { text-align: center; margin-top: 0;}
         .review-list-view ul { list-style: none; padding: 0;}
-        .review-list-view li { 
-            padding: 0.75rem; 
-            border-bottom: 1px solid #eee; 
-            display: flex; /* (新增) 使用Flex布局，方便对齐 */
-            justify-content: space-between; /* (新增) 两端对齐 */
-            align-items: center; /* (新增) 垂直居中 */
-        }
-
-        /* (新增) 删除按钮样式 */
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            padding: 0.2rem 0.6rem;
-            font-size: 0.8rem;
-            cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.2s ease;
-        }
-        .delete-btn:hover {
-            opacity: 1;
-        }
+        .review-list-view li { padding: 0.75rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .delete-btn { background-color: #dc3545; color: white; border: none; border-radius: 5px; padding: 0.2rem 0.6rem; font-size: 0.8rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s ease; }
+        .delete-btn:hover { opacity: 1; }
 
         .word-card { background-color: #ffffff; padding: 2.5rem 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); min-height: 400px; display: flex; flex-direction: column; justify-content: center; }
+        
+        /* (新增) 单词和朗读按钮的容器 */
+        .word-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem; /* 单词和按钮的间距 */
+            margin-bottom: 2rem;
+        }
+        
+        #main-word { font-size: 3.5rem; font-weight: bold; margin: 0; }
         #word-details { transition: opacity 0.5s ease; }
-        #main-word { font-size: 3.5rem; font-weight: bold; margin-bottom: 2rem; }
         #pronunciation, #definition { margin: 0.5rem 0; }
         
+        /* (新增) 朗读按钮样式 */
+        .speak-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            line-height: 1;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+        .speak-btn:hover {
+            background-color: #f0f0f0;
+        }
+        .speak-btn svg {
+            width: 28px;
+            height: 28px;
+            fill: #555;
+        }
+
         #sentence-maker { margin-top: 1.5rem; }
         #sentence-input { width: 100%; min-height: 80px; padding: 0.5rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
         #ai-feedback { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; text-align: left;}
@@ -70,7 +79,13 @@
 
         <div id="learn-view">
             <div class="word-card">
-                <h2 id="main-word">正在初始化...</h2>
+                <!-- (已更新) 单词和朗读按钮的结构 -->
+                <div class="word-header">
+                    <h2 id="main-word">正在初始化...</h2>
+                    <button id="speak-btn" class="speak-btn hidden" title="朗读单词">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                    </button>
+                </div>
                 <div id="word-details" class="hidden">
                     <p id="pronunciation"></p>
                     <p id="definition"></p>
@@ -81,6 +96,7 @@
                 </div>
                 <div id="ai-feedback" class="hidden"></div>
             </div>
+            <!-- ... 按钮区保持不变 ... -->
             <div id="actions-initial" class="actions">
                 <button id="btn-unknown" class="action-button">不认识</button>
                 <button id="btn-known" class="action-button">认识</button>
@@ -101,7 +117,6 @@
             <h3>已认识的单词</h3>
             <ul id="known-list"></ul>
         </div>
-
         <div id="review-learning-view" class="review-list-view">
             <h3>待复习的单词</h3>
             <ul id="learning-list"></ul>
@@ -116,8 +131,10 @@
         const NEW_WORDS_PER_SESSION = 5;
 
         // --- 2. 获取页面元素 ---
-        const learnView = document.getElementById('learn-view');
         const mainWordEl = document.getElementById('main-word');
+        const speakBtn = document.getElementById('speak-btn'); // (新增) 获取朗读按钮
+        // ... (其他元素获取保持不变) ...
+        const learnView = document.getElementById('learn-view');
         const wordDetailsEl = document.getElementById('word-details');
         const pronunciationEl = document.getElementById('pronunciation');
         const definitionEl = document.getElementById('definition');
@@ -142,6 +159,7 @@
         const knownListEl = document.getElementById('known-list');
         const learningListEl = document.getElementById('learning-list');
 
+
         // --- 3. 状态管理 ---
         let allWords = [];
         let learningQueue = [];
@@ -153,76 +171,58 @@
         // --- 4. UI状态机和视图切换 ---
         function updateUiForState(state) { /* ...与上一版相同... */ wordDetailsEl.classList.add('hidden');sentenceMakerEl.classList.add('hidden');aiFeedbackEl.classList.add('hidden');actionsInitial.classList.add('hidden');actionsConfirm.classList.add('hidden');actionsSentence.classList.add('hidden');actionsFinish.classList.add('hidden');switch (state) {case 'reveal_word':actionsInitial.classList.remove('hidden');break;case 'show_answer':wordDetailsEl.classList.remove('hidden');actionsConfirm.classList.remove('hidden');break;case 'make_sentence':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');sentenceInputEl.value = '';actionsSentence.classList.remove('hidden');break;case 'show_feedback':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');aiFeedbackEl.classList.remove('hidden');actionsFinish.classList.remove('hidden');break;}}
         function switchView(mode) { /* ...与上一版相同... */ learnView.style.display = 'none';reviewKnownView.style.display = 'none';reviewLearningView.style.display = 'none';modeLearnBtn.classList.remove('active');modeReviewKnownBtn.classList.remove('active');modeReviewLearningBtn.classList.remove('active');if(mode === 'learn') {learnView.style.display = 'block';modeLearnBtn.classList.add('active');} else if (mode === 'review-known') {reviewKnownView.style.display = 'block';modeReviewKnownBtn.classList.add('active');populateReviewList(knownListEl, 'known');} else if (mode === 'review-learning') {reviewLearningView.style.display = 'block';modeReviewLearningBtn.classList.add('active');populateReviewList(learningListEl, 'learning');}}
-        
-        /**
-         * (已更新) 填充回顾列表，并添加删除按钮
-         * @param {HTMLElement} listElement - 要填充的<ul>元素
-         * @param {string} status - 要显示的单词状态 ('known' 或 'learning')
-         */
-        function populateReviewList(listElement, status) {
-            const words = allWords.filter(w => w.status === status);
-            listElement.innerHTML = '';
-            if (words.length === 0) {
-                listElement.innerHTML = '<li>列表为空</li>';
-                return;
-            }
-            words.sort((a, b) => a.word.localeCompare(b.word));
-            words.forEach(wordObj => {
-                const li = document.createElement('li');
-                
-                const wordSpan = document.createElement('span');
-                let text = wordObj.word;
-                if(status === 'learning' && wordObj.nextReviewDate) {
-                    text += ` (下次复习: ${new Date(wordObj.nextReviewDate).toLocaleDateString()})`;
-                }
-                wordSpan.textContent = text;
-                
-                // (新增) 创建删除按钮
-                const deleteBtn = document.createElement('button');
-                deleteBtn.textContent = '删除';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.dataset.word = wordObj.word; // 将单词存入data属性，方便获取
-                deleteBtn.addEventListener('click', handleDeleteWord); // 绑定点击事件
-
-                li.appendChild(wordSpan);
-                li.appendChild(deleteBtn);
-                listElement.appendChild(li);
-            });
-        }
+        function populateReviewList(listElement, status) { /* ...与上一版相同... */ const words = allWords.filter(w => w.status === status);listElement.innerHTML = '';if (words.length === 0) {listElement.innerHTML = '<li>列表为空</li>';return;}words.sort((a, b) => a.word.localeCompare(b.word));words.forEach(wordObj => {const li = document.createElement('li');const wordSpan = document.createElement('span');let text = wordObj.word;if(status === 'learning' && wordObj.nextReviewDate) {text += ` (下次复习: ${new Date(wordObj.nextReviewDate).toLocaleDateString()})`;}wordSpan.textContent = text;const deleteBtn = document.createElement('button');deleteBtn.textContent = '删除';deleteBtn.className = 'delete-btn';deleteBtn.dataset.word = wordObj.word;deleteBtn.addEventListener('click', handleDeleteWord);li.appendChild(wordSpan);li.appendChild(deleteBtn);listElement.appendChild(li);});}
 
         // --- 5. 核心学习逻辑 ---
-        function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
-        function buildLearningQueue() { const today = new Date().setHours(0, 0, 0, 0); const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today); const newWords = allWords.filter(word => word.status === 'new'); shuffleArray(wordsToReview); shuffleArray(newWords); learningQueue = [...wordsToReview]; if (wordsToReview.length === 0 && newWords.length > 0) { learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION); } }
-        function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;}}
+
+        /**
+         * (新增) 使用浏览器API朗读单词
+         * @param {string} text 要朗读的文本
+         */
+        function speakWord(text) {
+            // 确保浏览器支持语音合成API
+            if ('speechSynthesis' in window && text) {
+                // 如果有正在朗读的，先取消
+                window.speechSynthesis.cancel();
+                
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US'; // 设置语言为美式英语，发音更准确
+                utterance.rate = 0.9; // 语速稍慢一点，听得更清楚
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        
+        function shuffleArray(array) { /* ...与上一版相同... */ for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
+        function buildLearningQueue() { /* ...与上一版相同... */ const today = new Date().setHours(0, 0, 0, 0); const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today); const newWords = allWords.filter(word => word.status === 'new'); shuffleArray(wordsToReview); shuffleArray(newWords); learningQueue = [...wordsToReview]; if (wordsToReview.length === 0 && newWords.length > 0) { learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION); } }
+        
+        // (已更新) 显示下一个单词时，同时显示朗读按钮
+        function showNextWord() {
+            buildLearningQueue();
+            if (learningQueue.length > 0) {
+                currentWord = learningQueue.shift();
+                mainWordEl.textContent = currentWord.word;
+                updateUiForState('reveal_word');
+                speakBtn.classList.remove('hidden'); // 显示朗读按钮
+            } else {
+                learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;
+            }
+        }
+        
         async function loadWordDetails() { /* ...与上一版相同... */ pronunciationEl.textContent = '...';definitionEl.textContent = '正在获取中文释义...';try {const response = await fetch('/api/get-definition', {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({ word: currentWord.word })});if (!response.ok) {const errorData = await response.json();throw new Error(errorData.error || '获取释义失败');}const data = await response.json();pronunciationEl.textContent = data.pronunciation || '';definitionEl.textContent = data.definition || '无可用释义';} catch (error) {console.error("加载单词详情失败:", error);definitionEl.textContent = `释义加载失败: ${error.message}`;}}
 
         // --- 6. 连接真实AI (造句批改) ---
         async function getRealAiSentenceCheck(word, sentence) { /* ...与上一版相同... */ aiFeedbackEl.innerHTML = "<em>AI 老师正在批改... (这可能需要几秒钟)</em>";try {const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ word, sentence }),});if (!response.ok) {const errorData = await response.json();throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);}const data = await response.json();let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考例句：</strong> ${data.correct_example}</p>`;return feedbackHTML;} catch (error) {console.error("连接AI失败:", error);return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;}}
 
         // --- 7. 事件处理 ---
-
-        /**
-         * (新增) 处理删除按钮的点击事件
-         */
-        function handleDeleteWord(event) {
-            const wordToDelete = event.target.dataset.word;
-            if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {
-                const wordIndex = allWords.findIndex(w => w.word === wordToDelete);
-                if (wordIndex > -1) {
-                    allWords.splice(wordIndex, 1); // 从主数组中移除
-                    saveState(); // 保存状态
-                    
-                    // 刷新当前所在的列表视图
-                    const currentView = document.querySelector('.mode-button.active').id;
-                    if (currentView === 'mode-review-known') {
-                        populateReviewList(knownListEl, 'known');
-                    } else if (currentView === 'mode-review-learning') {
-                        populateReviewList(learningListEl, 'learning');
-                    }
-                }
+        function handleDeleteWord(event) { /* ...与上一版相同... */ const wordToDelete = event.target.dataset.word;if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {const wordIndex = allWords.findIndex(w => w.word === wordToDelete);if (wordIndex > -1) {allWords.splice(wordIndex, 1);saveState();const currentView = document.querySelector('.mode-button.active').id;if (currentView === 'mode-review-known') {populateReviewList(knownListEl, 'known');} else if (currentView === 'mode-review-learning') {populateReviewList(learningListEl, 'learning');}}}}
+        
+        // (新增) 为朗读按钮绑定点击事件
+        speakBtn.addEventListener('click', () => {
+            if (currentWord) {
+                speakWord(currentWord.word);
             }
-        }
-
+        });
+        
         btnKnown.addEventListener('click', () => { loadWordDetails(); updateUiForState('show_answer'); });
         btnUnknown.addEventListener('click', () => { loadWordDetails(); updateUiForState('make_sentence'); });
         btnConfirmKnown.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'known';allWords[wordIndex].srsLevel = -1;saveState();showNextWord(); });
@@ -256,4 +256,3 @@
     </script>
 </body>
 </html>
-
