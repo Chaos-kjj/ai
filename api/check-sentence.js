@@ -1,12 +1,8 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// 从环境变量中安全地获取API密钥
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
-// Vercel会将这个文件自动转换成一个API端点
-// 例如：https://your-site.vercel.app/api/check-sentence
 module.exports = async (req, res) => {
-  // 只接受POST请求
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -32,12 +28,21 @@ module.exports = async (req, res) => {
     const result = await model.generateContent(prompt);
     const responseText = await result.response.text();
 
-    // 将AI返回的字符串解析为JSON对象并发送回前端
-    const feedbackJson = JSON.parse(responseText);
+    // --- BUG修复：智能提取JSON ---
+    // AI返回的文本可能包含 "```json" 等标记，我们只提取 { ... } 之间的部分
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        // 如果连 { ... } 都找不到，说明AI返回了非预期的格式
+        throw new Error("AI response did not contain a valid JSON object.");
+    }
+
+    const jsonString = jsonMatch[0];
+    const feedbackJson = JSON.parse(jsonString); // 现在只解析纯净的JSON字符串
+
     res.status(200).json(feedbackJson);
 
   } catch (error) {
-    console.error(error);
+    console.error('Backend Error:', error); // 在服务器日志中打印更详细的错误
     res.status(500).json({ error: 'Failed to get feedback from AI.', details: error.message });
   }
 };
