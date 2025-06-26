@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能单词本 - 最终版</title>
+    <title>智能单词本 - 随机版</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 1rem; }
         main { text-align: center; width: 100%; max-width: 600px; margin: 0 auto;}
 
-        /* --- 新增/修改的样式 --- */
+        /* --- 样式部分 --- */
         .hidden { display: none !important; }
 
         .mode-switcher { margin-bottom: 1.5rem; }
@@ -40,14 +40,12 @@
 <body>
     
     <main>
-        <!-- (已恢复) 模式切换按钮 -->
         <div class="mode-switcher">
             <button id="mode-learn" class="mode-button active">学习</button>
             <button id="mode-review-known" class="mode-button">已认识列表</button>
             <button id="mode-review-learning" class="mode-button">待复习列表</button>
         </div>
 
-        <!-- 学习视图 -->
         <div id="learn-view">
             <div class="word-card">
                 <h2 id="main-word">正在初始化...</h2>
@@ -77,13 +75,11 @@
             </div>
         </div>
 
-        <!-- (已恢复) 已认识列表视图 -->
         <div id="review-known-view" class="review-list-view">
             <h3>已认识的单词</h3>
             <ul id="known-list"></ul>
         </div>
 
-        <!-- (已恢复) 待复习列表视图 -->
         <div id="review-learning-view" class="review-list-view">
             <h3>待复习的单词</h3>
             <ul id="learning-list"></ul>
@@ -133,79 +129,52 @@
         function saveState() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords)); }
         
         // --- 4. UI状态机和视图切换 ---
-        function updateUiForState(state) { wordDetailsEl.classList.add('hidden');sentenceMakerEl.classList.add('hidden');aiFeedbackEl.classList.add('hidden');actionsInitial.classList.add('hidden');actionsConfirm.classList.add('hidden');actionsSentence.classList.add('hidden');actionsFinish.classList.add('hidden');switch (state) {case 'reveal_word':actionsInitial.classList.remove('hidden');break;case 'show_answer':wordDetailsEl.classList.remove('hidden');actionsConfirm.classList.remove('hidden');break;case 'make_sentence':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');sentenceInputEl.value = '';actionsSentence.classList.remove('hidden');break;case 'show_feedback':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');aiFeedbackEl.classList.remove('hidden');actionsFinish.classList.remove('hidden');break;}}
-        
-        function switchView(mode) {
-            learnView.style.display = 'none';
-            reviewKnownView.style.display = 'none';
-            reviewLearningView.style.display = 'none';
-            modeLearnBtn.classList.remove('active');
-            modeReviewKnownBtn.classList.remove('active');
-            modeReviewLearningBtn.classList.remove('active');
-
-            if(mode === 'learn') {
-                learnView.style.display = 'block';
-                modeLearnBtn.classList.add('active');
-            } else if (mode === 'review-known') {
-                reviewKnownView.style.display = 'block';
-                modeReviewKnownBtn.classList.add('active');
-                populateReviewList(knownListEl, 'known');
-            } else if (mode === 'review-learning') {
-                reviewLearningView.style.display = 'block';
-                modeReviewLearningBtn.classList.add('active');
-                populateReviewList(learningListEl, 'learning');
-            }
-        }
-
-        function populateReviewList(listElement, status) {
-            const words = allWords.filter(w => w.status === status);
-            listElement.innerHTML = '';
-            if (words.length === 0) {
-                listElement.innerHTML = '<li>列表为空</li>';
-                return;
-            }
-            words.sort((a, b) => a.word.localeCompare(b.word));
-            words.forEach(wordObj => {
-                const li = document.createElement('li');
-                let text = wordObj.word;
-                if(status === 'learning' && wordObj.nextReviewDate) {
-                    text += ` (下次复习: ${new Date(wordObj.nextReviewDate).toLocaleDateString()})`;
-                }
-                li.textContent = text;
-                listElement.appendChild(li);
-            });
-        }
+        function updateUiForState(state) { /* ...与上一版相同... */ wordDetailsEl.classList.add('hidden');sentenceMakerEl.classList.add('hidden');aiFeedbackEl.classList.add('hidden');actionsInitial.classList.add('hidden');actionsConfirm.classList.add('hidden');actionsSentence.classList.add('hidden');actionsFinish.classList.add('hidden');switch (state) {case 'reveal_word':actionsInitial.classList.remove('hidden');break;case 'show_answer':wordDetailsEl.classList.remove('hidden');actionsConfirm.classList.remove('hidden');break;case 'make_sentence':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');sentenceInputEl.value = '';actionsSentence.classList.remove('hidden');break;case 'show_feedback':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');aiFeedbackEl.classList.remove('hidden');actionsFinish.classList.remove('hidden');break;}}
+        function switchView(mode) { /* ...与上一版相同... */ learnView.style.display = 'none';reviewKnownView.style.display = 'none';reviewLearningView.style.display = 'none';modeLearnBtn.classList.remove('active');modeReviewKnownBtn.classList.remove('active');modeReviewLearningBtn.classList.remove('active');if(mode === 'learn') {learnView.style.display = 'block';modeLearnBtn.classList.add('active');} else if (mode === 'review-known') {reviewKnownView.style.display = 'block';modeReviewKnownBtn.classList.add('active');populateReviewList(knownListEl, 'known');} else if (mode === 'review-learning') {reviewLearningView.style.display = 'block';modeReviewLearningBtn.classList.add('active');populateReviewList(learningListEl, 'learning');}}
+        function populateReviewList(listElement, status) { /* ...与上一版相同... */ const words = allWords.filter(w => w.status === status);listElement.innerHTML = '';if (words.length === 0) {listElement.innerHTML = '<li>列表为空</li>';return;}words.sort((a, b) => a.word.localeCompare(b.word));words.forEach(wordObj => {const li = document.createElement('li');let text = wordObj.word;if(status === 'learning' && wordObj.nextReviewDate) {text += ` (下次复习: ${new Date(wordObj.nextReviewDate).toLocaleDateString()})`;}li.textContent = text;listElement.appendChild(li);});}
 
         // --- 5. 核心学习逻辑 ---
-        function buildLearningQueue() { const t=new Date().setHours(0,0,0,0),e=allWords.filter(e=>"learning"===e.status&&new Date(e.nextReviewDate).setHours(0,0,0,0)<=t),n=allWords.filter(e=>"new"===e.status);learningQueue=[...e],0===e.length&&(learningQueue=n.slice(0,NEW_WORDS_PER_SESSION))}
-        function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;}}
-        
-        // (已更新) 调用我们自己的后端获取中文释义
-        async function loadWordDetails() {
-            pronunciationEl.textContent = '...';
-            definitionEl.textContent = '正在获取中文释义...';
-            try {
-                // 调用我们自己的新后端来获取中文释义
-                const response = await fetch('/api/get-definition', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ word: currentWord.word })
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || '获取释义失败');
-                }
-                const data = await response.json();
-                pronunciationEl.textContent = data.pronunciation || '';
-                definitionEl.textContent = data.definition || '无可用释义';
-            } catch (error) {
-                console.error("加载单词详情失败:", error);
-                definitionEl.textContent = `释义加载失败: ${error.message}`;
+
+        /**
+         * (已新增) Fisher-Yates (aka Knuth) 洗牌算法。
+         * 用于打乱数组元素的顺序。
+         * @param {Array} array 需要被打乱的数组
+         */
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]]; // ES6 语法交换元素
             }
         }
 
+        /**
+         * (已更新) 构建学习队列，现在会随机打乱顺序。
+         */
+        function buildLearningQueue() {
+            const today = new Date().setHours(0, 0, 0, 0);
+            
+            // 1. 筛选出需要复习的单词和新词
+            const wordsToReview = allWords.filter(word => 
+                word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today
+            );
+            const newWords = allWords.filter(word => word.status === 'new');
+
+            // 2. (核心改动) 将两个列表分别打乱
+            shuffleArray(wordsToReview);
+            shuffleArray(newWords);
+
+            // 3. 优先放入复习词，如果不够，再从打乱后的新词里拿
+            learningQueue = [...wordsToReview];
+            if (wordsToReview.length === 0 && newWords.length > 0) {
+                learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION);
+            }
+        }
+
+        function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;}}
+        async function loadWordDetails() { /* ...与上一版相同... */ pronunciationEl.textContent = '...';definitionEl.textContent = '正在获取中文释义...';try {const response = await fetch('/api/get-definition', {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({ word: currentWord.word })});if (!response.ok) {const errorData = await response.json();throw new Error(errorData.error || '获取释义失败');}const data = await response.json();pronunciationEl.textContent = data.pronunciation || '';definitionEl.textContent = data.definition || '无可用释义';} catch (error) {console.error("加载单词详情失败:", error);definitionEl.textContent = `释义加载失败: ${error.message}`;}}
+
         // --- 6. 连接真实AI (造句批改) ---
-        async function getRealAiSentenceCheck(word, sentence) { aiFeedbackEl.innerHTML = "<em>AI 老师正在批改... (这可能需要几秒钟)</em>";try {const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ word, sentence }),});if (!response.ok) {const errorData = await response.json();throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);}const data = await response.json();let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考例句：</strong> ${data.correct_example}</p>`;return feedbackHTML;} catch (error) {console.error("连接AI失败:", error);return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;}}
+        async function getRealAiSentenceCheck(word, sentence) { /* ...与上一版相同... */ aiFeedbackEl.innerHTML = "<em>AI 老师正在批改... (这可能需要几秒钟)</em>";try {const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ word, sentence }),});if (!response.ok) {const errorData = await response.json();throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);}const data = await response.json();let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考例句：</strong> ${data.correct_example}</p>`;return feedbackHTML;} catch (error) {console.error("连接AI失败:", error);return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;}}
 
         // --- 7. 事件处理 ---
         btnKnown.addEventListener('click', () => { loadWordDetails(); updateUiForState('show_answer'); });
@@ -214,7 +183,6 @@
         btnCorrection.addEventListener('click', () => { updateUiForState('make_sentence'); });
         btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {const feedback = await getRealAiSentenceCheck(currentWord.word, userSentence);aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');} else {alert("请输入一个句子！");} });
         btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
-        
         modeLearnBtn.addEventListener('click', () => switchView('learn'));
         modeReviewKnownBtn.addEventListener('click', () => switchView('review-known'));
         modeReviewLearningBtn.addEventListener('click', () => switchView('review-learning'));
@@ -242,3 +210,15 @@
     </script>
 </body>
 </html>
+```
+
+### 您需要做什么？
+
+1.  **替换代码**：将上面提供的完整代码，替换掉您本地项目文件夹中的 `index.html` 文件。
+2.  **上传到GitHub**：
+    * 打开 **GitHub Desktop**。
+    * 它会检测到 `index.html` 的变化。
+    * 在左下角的 **Summary** 输入框里写一个描述，例如 `实现随机出现单词`。
+    * 点击 **"Commit to main"**。
+    * 点击顶部的 **"Push origin"**。
+3.  **等待Vercel自动部署**：Vercel会自动检测到更新并开始部署。完成后，访问您的网站，体验全新的随机学习模
