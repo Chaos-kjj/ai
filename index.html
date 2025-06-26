@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能单词本 - 连接真实AI</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 1rem; }
+        main { text-align: center; width: 100%; max-width: 600px; margin: 0 auto;}
+
+        /* --- 样式部分 --- */
+        .hidden { display: none !important; }
+
+        .word-card { background-color: #ffffff; padding: 2.5rem 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); min-height: 400px; display: flex; flex-direction: column; justify-content: center; }
+        #word-details { transition: opacity 0.5s ease; }
+        #main-word { font-size: 3.5rem; font-weight: bold; margin-bottom: 2rem; }
+        #pronunciation, #definition { margin: 0.5rem 0; }
+        
+        #sentence-maker { margin-top: 1.5rem; }
+        #sentence-input { width: 100%; min-height: 80px; padding: 0.5rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
+        #ai-feedback { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; text-align: left;}
+
+        .actions { margin-top: 2rem; display: flex; justify-content: space-around; }
+        .action-button { width: 45%; border: none; padding: 1rem; border-radius: 50px; font-size: 1.2rem; cursor: pointer; transition: all 0.2s ease; }
+        #btn-unknown { background-color: #ffc107; }
+        #btn-known, #btn-confirm-known { background-color: #28a745; color: white; }
+        #btn-correction, #btn-submit-sentence, #btn-finish-learning { background-color: #007bff; color: white; }
+    </style>
+</head>
+<body>
+    
+    <main>
+        <div id="learn-view">
+            <div class="word-card">
+                <h2 id="main-word">正在初始化...</h2>
+                
+                <!-- 单词详情，初始可隐藏 -->
+                <div id="word-details" class="hidden">
+                    <p id="pronunciation"></p>
+                    <p id="definition"></p>
+                </div>
+
+                <!-- 造句模块，默认隐藏 -->
+                <div id="sentence-maker" class="hidden">
+                    <p><strong>请尝试用这个单词造一个句子：</strong></p>
+                    <textarea id="sentence-input" placeholder="在此输入你的句子..."></textarea>
+                </div>
+                
+                <!-- AI反馈模块，默认隐藏 -->
+                <div id="ai-feedback" class="hidden"></div>
+            </div>
+
+            <!-- 按钮区，会根据不同状态切换 -->
+            <div id="actions-initial" class="actions">
+                <button id="btn-unknown" class="action-button">不认识</button>
+                <button id="btn-known" class="action-button">认识</button>
+            </div>
+            <div id="actions-confirm" class="actions hidden">
+                <button id="btn-correction" class="action-button">修正:不认识</button>
+                <button id="btn-confirm-known" class="action-button">下一个</button>
+            </div>
+            <div id="actions-sentence" class="actions hidden">
+                <button id="btn-submit-sentence" class="action-button" style="width: 95%;">提交造句</button>
+            </div>
+            <div id="actions-finish" class="actions hidden">
+                <button id="btn-finish-learning" class="action-button" style="width: 95%;">完成学习</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- 1. 配置和常量 ---
+        const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
+        const LOCAL_STORAGE_KEY = 'mySmartWordBook';
+        const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
+        const NEW_WORDS_PER_SESSION = 5;
+
+        // --- 2. 获取页面元素 ---
+        const mainWordEl = document.getElementById('main-word');
+        const wordDetailsEl = document.getElementById('word-details');
+        const pronunciationEl = document.getElementById('pronunciation');
+        const definitionEl = document.getElementById('definition');
+        
+        const sentenceMakerEl = document.getElementById('sentence-maker');
+        const sentenceInputEl = document.getElementById('sentence-input');
+        const aiFeedbackEl = document.getElementById('ai-feedback');
+
+        const actionsInitial = document.getElementById('actions-initial');
+        const actionsConfirm = document.getElementById('actions-confirm');
+        const actionsSentence = document.getElementById('actions-sentence');
+        const actionsFinish = document.getElementById('actions-finish');
+
+        const btnUnknown = document.getElementById('btn-unknown');
+        const btnKnown = document.getElementById('btn-known');
+        const btnCorrection = document.getElementById('btn-correction');
+        const btnConfirmKnown = document.getElementById('btn-confirm-known');
+        const btnSubmitSentence = document.getElementById('btn-submit-sentence');
+        const btnFinishLearning = document.getElementById('btn-finish-learning');
+
+        // --- 3. 状态管理 ---
+        let allWords = [];
+        let learningQueue = [];
+        let currentWord = null;
+
+        function loadState() { return localStorage.getItem(LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) : []; }
+        function saveState() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords)); }
+        
+        // --- 4. UI状态机：根据不同学习阶段显示/隐藏元素 ---
+        function updateUiForState(state) {
+            wordDetailsEl.classList.add('hidden');
+            sentenceMakerEl.classList.add('hidden');
+            aiFeedbackEl.classList.add('hidden');
+            actionsInitial.classList.add('hidden');
+            actionsConfirm.classList.add('hidden');
+            actionsSentence.classList.add('hidden');
+            actionsFinish.classList.add('hidden');
+
+            switch (state) {
+                case 'reveal_word':
+                    actionsInitial.classList.remove('hidden');
+                    break;
+                case 'show_answer':
+                    wordDetailsEl.classList.remove('hidden');
+                    actionsConfirm.classList.remove('hidden');
+                    break;
+                case 'make_sentence':
+                    wordDetailsEl.classList.remove('hidden');
+                    sentenceMakerEl.classList.remove('hidden');
+                    sentenceInputEl.value = '';
+                    actionsSentence.classList.remove('hidden');
+                    break;
+                case 'show_feedback':
+                    wordDetailsEl.classList.remove('hidden');
+                    sentenceMakerEl.classList.remove('hidden');
+                    aiFeedbackEl.classList.remove('hidden');
+                    actionsFinish.classList.remove('hidden');
+                    break;
+            }
+        }
+
+        // --- 5. 核心学习逻辑 ---
+        function buildLearningQueue() { const t=new Date().setHours(0,0,0,0),e=allWords.filter(e=>"learning"===e.status&&new Date(e.nextReviewDate).setHours(0,0,0,0)<=t),n=allWords.filter(e=>"new"===e.status);learningQueue=[...e],0===e.length&&(learningQueue=n.slice(0,NEW_WORDS_PER_SESSION))}
+
+        function showNextWord() {
+            buildLearningQueue();
+            if (learningQueue.length > 0) {
+                currentWord = learningQueue.shift();
+                mainWordEl.textContent = currentWord.word;
+                updateUiForState('reveal_word');
+            } else {
+                mainWordEl.textContent = '今日任务完成！🎉';
+                actionsInitial.classList.add('hidden');
+            }
+        }
+        
+        async function loadWordDetails() {
+            pronunciationEl.textContent = '...';
+            definitionEl.textContent = '正在获取释义...';
+            try {
+                const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${currentWord.word}`);
+                if (!response.ok) throw new Error('找不到单词');
+                const data = await response.json();
+                pronunciationEl.textContent = data[0].phonetics.find(p=>p.text)?.text || '';
+                definitionEl.textContent = data[0].meanings[0]?.definitions[0]?.definition || '无可用释义';
+            } catch (error) {
+                definitionEl.textContent = '释义加载失败。';
+            }
+        }
+
+        // =========================================================================
+        // --- 6. (已更新) 连接真实AI ---
+        // 这个函数将代替之前的AI模拟器
+        // =========================================================================
+        async function getRealAiSentenceCheck(word, sentence) {
+            aiFeedbackEl.innerHTML = "<em>AI 老师正在批改... (这可能需要几秒钟)</em>";
+
+            try {
+                // 这个相对路径 '/api/check-sentence' 会被Vercel自动指向我们部署的后端函数。
+                // 在本地测试时它会不工作，但一旦部署到Vercel上，它就能神奇地找到正确的路径。
+                const response = await fetch('/api/check-sentence', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ word, sentence }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);
+                }
+
+                // 解析后端返回的JSON数据
+                const data = await response.json(); 
+
+                // 将结构化的反馈格式化成用户友好的HTML
+                let feedbackHTML = `
+                    <p><strong>AI老师点评：</strong></p>
+                    <p>${data.explanation}</p>
+                    <p><strong>参考例句：</strong> ${data.correct_example}</p>
+                `;
+                return feedbackHTML;
+
+            } catch (error) {
+                console.error("连接AI失败:", error);
+                return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;
+            }
+        }
+
+        // --- 7. 事件处理 ---
+
+        btnKnown.addEventListener('click', () => {
+            loadWordDetails();
+            updateUiForState('show_answer');
+        });
+
+        btnUnknown.addEventListener('click', () => {
+            loadWordDetails();
+            updateUiForState('make_sentence');
+        });
+
+        btnConfirmKnown.addEventListener('click', () => {
+            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
+            allWords[wordIndex].status = 'known';
+            allWords[wordIndex].srsLevel = -1;
+            saveState();
+            showNextWord();
+        });
+
+        btnCorrection.addEventListener('click', () => {
+            updateUiForState('make_sentence');
+        });
+
+        // (已更新) 提交按钮现在调用真实AI函数
+        btnSubmitSentence.addEventListener('click', async () => {
+            const userSentence = sentenceInputEl.value.trim();
+            if (userSentence) {
+                // 调用新的真实AI函数
+                const feedback = await getRealAiSentenceCheck(currentWord.word, userSentence);
+                aiFeedbackEl.innerHTML = feedback;
+                updateUiForState('show_feedback');
+            } else {
+                alert("请输入一个句子！");
+            }
+        });
+
+        btnFinishLearning.addEventListener('click', () => {
+            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
+            allWords[wordIndex].status = 'learning';
+            let currentLevel = allWords[wordIndex].srsLevel;
+            if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {
+                allWords[wordIndex].srsLevel++;
+            }
+            const interval = SRS_INTERVALS_DAYS[currentLevel];
+            const nextReviewDate = new Date();
+            nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+            allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
+            
+            saveState();
+            showNextWord();
+        });
+
+        // --- 8. 初始化应用 ---
+        async function initializeApp() {
+             allWords = loadState();
+             if (allWords.length === 0) {
+                 try {
+                     const response = await fetch(WORD_LIST_URL);
+                     if (!response.ok) throw new Error('无法获取云端词库');
+                     const wordList = await response.json();
+                     allWords = wordList.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
+                     saveState();
+                 } catch (error) {
+                     mainWordEl.textContent = `初始化失败: ${error.message}`;
+                     return;
+                 }
+             }
+             showNextWord();
+        }
+
+        initializeApp();
+    </script>
+</body>
+</html>
