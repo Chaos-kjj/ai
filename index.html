@@ -502,6 +502,34 @@
         modeTranslationChallengeBtn.addEventListener('click', () => switchView('translation-challenge'));
         modeReviewKnownBtn.addEventListener('click', () => switchView('review-known'));
         modeReviewLearningBtn.addEventListener('click', () => switchView('review-learning'));
+        btnStartTranslationChallenge.addEventListener('click', startNewTranslationChallenge);
+        btnNextTranslationChallenge.addEventListener('click', () => {
+            translationChallengeSetup.classList.remove('hidden');
+            translationChallengeArea.classList.add('hidden');
+            actionsTranslationChallenge.classList.add('hidden');
+        });
+        btnSubmitTranslation.addEventListener('click', async () => {
+            const userTranslation = translationChallengeInput.value.trim();
+            if (!userTranslation) {
+                alert('请输入您的翻译！');
+                return;
+            }
+            
+            translationAiFeedback.classList.add('hidden');
+            translationLoadingSpinner.classList.remove('hidden');
+            let feedback = '';
+            try {
+                feedback = await getRealAiTranslationCheck(currentChineseSentence, userTranslation);
+            } catch (e) {
+                feedback = `❌ 请求AI时发生未知错误。`;
+            } finally {
+                translationLoadingSpinner.classList.add('hidden');
+                translationAiFeedback.innerHTML = feedback;
+                translationAiFeedback.classList.remove('hidden');
+                btnSubmitTranslation.classList.add('hidden');
+                btnNextTranslationChallenge.classList.remove('hidden');
+            }
+        });
 
         // --- 8. 初始化应用 ---
         async function initializeApp() {
