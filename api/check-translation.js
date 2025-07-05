@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
+    model: "meta-llama/Meta-Llama-3-8B-Instruct",
     messages: [
       {
         role: "system",
@@ -46,9 +46,17 @@ module.exports = async (req, res) => {
     }
 
     const data = await response.json();
-    const content = JSON.parse(data.choices[0].message.content);
+    const content = data.choices[0].message.content;
 
-    res.status(200).json(content);
+    // (已修复) 更强大的JSON提取和解析逻辑
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error("AI response did not contain a valid JSON object.");
+    }
+    const jsonString = jsonMatch[0];
+    const feedbackJson = JSON.parse(jsonString);
+
+    res.status(200).json(feedbackJson);
 
   } catch (error) {
     console.error('Check Translation Backend Error:', error);
