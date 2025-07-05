@@ -11,11 +11,11 @@ module.exports = async (req, res) => {
   }
 
   // 2. 准备向 SiliconCloud API 发送的请求
-  const apiKey = process.env.GOOGLE_API_KEY; // 我们继续使用这个环境变量名
+  const apiKey = process.env.GOOGLE_API_KEY;
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B", // (已更新) 更换为新指定的模型
+    model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
     messages: [
       {
         role: "system",
@@ -47,18 +47,14 @@ module.exports = async (req, res) => {
 
     const data = await response.json();
     const content = data.choices[0].message.content;
-    let feedbackJson;
-
-    // 更健壮的JSON解析逻辑
-    if (typeof content === 'string') {
-        try {
-            feedbackJson = JSON.parse(content);
-        } catch (e) {
-            throw new Error(`Failed to parse JSON from AI response: ${content}`);
-        }
-    } else {
-        throw new Error("Unexpected AI response format. Expected a JSON string.");
+    
+    // (已更新) 更强大的JSON提取和解析逻辑
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error("AI response did not contain a valid JSON object.");
     }
+    const jsonString = jsonMatch[0];
+    const feedbackJson = JSON.parse(jsonString);
 
     res.status(200).json(feedbackJson);
 
