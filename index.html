@@ -328,53 +328,52 @@
 
         // --- 8. 初始化应用 ---
         async function initializeApp() {
-            let loadedData = loadState();
-            let migratedWords = [];
+            try {
+                // 1. 先从云端获取最新的主词库
+                const response = await fetch(WORD_LIST_URL);
+                if (!response.ok) throw new Error('无法获取云端词库');
+                const cloudWordList = await response.json();
+                let initialWords = [];
+                if (Array.isArray(cloudWordList)) {
+                    initialWords = cloudWordList;
+                } else {
+                    const firstListName = Object.keys(cloudWordList)[0];
+                    initialWords = firstListName ? cloudWordList[firstListName] : [];
+                }
 
-            // (已修复) 更健壮的数据迁移和验证逻辑
-            if (loadedData.length > 0) {
-                migratedWords = loadedData.map(item => {
-                    if (typeof item === 'string') {
-                        return { word: item, status: 'new', srsLevel: 0, nextReviewDate: null };
+                // 2. 加载本地的学习进度
+                const localWords = loadState();
+                const localWordMap = new Map(localWords.map(wordObj => [wordObj.word, wordObj]));
+
+                // 3. 合并云端词库和本地进度
+                const syncedWords = initialWords.map(word => {
+                    if (localWordMap.has(word)) {
+                        return localWordMap.get(word); // 如果本地有进度，使用本地的
                     }
-                    if (typeof item === 'object' && item !== null && item.word) {
-                        return {
-                            word: item.word,
-                            status: item.status || 'new',
-                            srsLevel: item.srsLevel !== undefined ? item.srsLevel : 0,
-                            nextReviewDate: item.nextReviewDate || null
-                        };
+                    // 如果本地没有，说明是云端新增的词，创建新对象
+                    return { word: word, status: 'new', srsLevel: 0, nextReviewDate: null };
+                });
+
+                // 4. 将用户手动添加的、但云端没有的词也加回来
+                localWords.forEach(localWordObj => {
+                    if (!syncedWords.some(w => w.word === localWordObj.word)) {
+                        syncedWords.push(localWordObj);
                     }
-                    return null;
-                }).filter(Boolean);
-            }
+                });
 
-            allWords = migratedWords;
+                allWords = syncedWords;
+                saveState();
 
-            if (allWords.length === 0) {
-                 try {
-                     const response = await fetch(WORD_LIST_URL);
-                     if (!response.ok) throw new Error('无法获取云端词库');
-                     const wordList = await response.json();
-                     let initialWords = [];
-                     if (Array.isArray(wordList)) {
-                        initialWords = wordList;
-                     } else {
-                        const firstListName = Object.keys(wordList)[0];
-                        if (firstListName) {
-                            initialWords = wordList[firstListName];
-                        } else {
-                            throw new Error('云端词库格式不正确');
-                        }
-                     }
-                     allWords = initialWords.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
-                 } catch (error) {
-                     learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
-                     return;
-                 }
+            } catch (error) {
+                // 如果网络失败，尝试只加载本地数据
+                console.warn("无法从云端同步词库，将只加载本地进度。", error);
+                allWords = loadState();
+                if (allWords.length === 0) {
+                    learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
+                    return;
+                }
             }
             
-            saveState();
             switchView('learn');
             showNextWord();
         }
