@@ -12,13 +12,12 @@
         /* --- 样式部分 --- */
         .hidden { display: none !important; }
 
-        /* (新增) 应用标题样式 */
         #app-title {
             font-size: 2.8rem;
-            font-weight: 300; /* 使用细字体，更具设计感 */
+            font-weight: 300;
             color: #555;
-            letter-spacing: 4px; /* 增加字间距，提升美感 */
-            margin: 1rem 0 2rem 0; /* 调整标题与下方元素的间距 */
+            letter-spacing: 4px;
+            margin: 1rem 0 2rem 0;
         }
         
         #add-word-container {
@@ -75,6 +74,21 @@
         #sentence-input { width: 100%; min-height: 80px; padding: 0.5rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
         #ai-feedback { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; text-align: left;}
 
+        /* (新增) 加载动画样式 */
+        #loading-spinner {
+            border: 4px solid #f3f3f3; /* 浅灰色背景环 */
+            border-top: 4px solid #007bff; /* 蓝色旋转部分 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto; /* 居中显示 */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .actions { margin-top: 2rem; display: flex; justify-content: space-around; }
         .action-button { width: 45%; border: none; padding: 1rem; border-radius: 50px; font-size: 1.2rem; cursor: pointer; transition: all 0.2s ease; }
         #btn-unknown { background-color: #ffc107; }
@@ -85,7 +99,6 @@
 <body>
     
     <main>
-        <!-- (新增) 应用标题 -->
         <h1 id="app-title">康康背词器</h1>
 
         <div id="add-word-container">
@@ -115,6 +128,8 @@
                     <p><strong>请尝试用这个单词造一个句子：</strong></p>
                     <textarea id="sentence-input" placeholder="在此输入你的句子..."></textarea>
                 </div>
+                <!-- (新增) 加载动画的HTML元素 -->
+                <div id="loading-spinner" class="hidden"></div>
                 <div id="ai-feedback" class="hidden"></div>
             </div>
             <!-- ... 按钮区保持不变 ... -->
@@ -152,6 +167,7 @@
         const NEW_WORDS_PER_SESSION = 5;
 
         // --- 2. 获取页面元素 ---
+        const loadingSpinner = document.getElementById('loading-spinner'); // (新增)
         const addWordInput = document.getElementById('add-word-input');
         const addWordBtn = document.getElementById('add-word-btn');
         const mainWordEl = document.getElementById('main-word');
@@ -203,12 +219,26 @@
         async function loadWordDetails() { /* ...与上一版相同... */ pronunciationEl.textContent = '...';definitionEl.textContent = '正在获取中文释义...';try {const response = await fetch('/api/get-definition', {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({ word: currentWord.word })});if (!response.ok) {const errorData = await response.json();throw new Error(errorData.error || '获取释义失败');}const data = await response.json();pronunciationEl.textContent = data.pronunciation || '';definitionEl.textContent = data.definition || '无可用释义';} catch (error) {console.error("加载单词详情失败:", error);definitionEl.textContent = `释义加载失败: ${error.message}`;}}
 
         // --- 6. 连接真实AI (造句批改) ---
-        async function getRealAiSentenceCheck(word, sentence) { /* ...与上一版相同... */ aiFeedbackEl.innerHTML = "<em>AI 老师正在批改... (这可能需要几秒钟)</em>";try {const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ word, sentence }),});if (!response.ok) {const errorData = await response.json();throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);}const data = await response.json();let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考例句：</strong> ${data.correct_example}</p>`;return feedbackHTML;} catch (error) {console.error("连接AI失败:", error);return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;}}
+        async function getRealAiSentenceCheck(word, sentence) {
+            try {
+                const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ word, sentence }),});
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);
+                }
+                const data = await response.json();
+                let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考例句：</strong> ${data.correct_example}</p>`;
+                return feedbackHTML;
+            } catch (error) {
+                console.error("连接AI失败:", error);
+                return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;
+            }
+        }
 
         // --- 7. 事件处理 ---
         function handleDeleteWord(event) { /* ...与上一版相同... */ const wordToDelete = event.target.dataset.word;if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {const wordIndex = allWords.findIndex(w => w.word === wordToDelete);if (wordIndex > -1) {allWords.splice(wordIndex, 1);saveState();const currentView = document.querySelector('.mode-button.active').id;if (currentView === 'mode-review-known') {populateReviewList(knownListEl, 'known');} else if (currentView === 'mode-review-learning') {populateReviewList(learningListEl, 'learning');}}}}
-        function handleAddWordClick() { const newWordStr = addWordInput.value.trim().toLowerCase();if (!newWordStr) { alert('请输入一个单词。'); return; }const existingWord = allWords.find(w => w.word === newWordStr);if (existingWord) { alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`); return; }const newWordObj = { word: newWordStr, status: 'new', srsLevel: 0, nextReviewDate: null };allWords.push(newWordObj);saveState();addWordInput.value = ''; alert(`单词 "${newWordStr}" 已成功添加到您的词库！现在开始学习吧。`);currentWord = newWordObj;switchView('learn');mainWordEl.textContent = currentWord.word;speakBtn.classList.remove('hidden');loadWordDetails();updateUiForState('make_sentence'); }
-
+        function handleAddWordClick() { /* ...与上一版相同... */ const newWordStr = addWordInput.value.trim().toLowerCase();if (!newWordStr) { alert('请输入一个单词。'); return; }const existingWord = allWords.find(w => w.word === newWordStr);if (existingWord) { alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`); return; }const newWordObj = { word: newWordStr, status: 'new', srsLevel: 0, nextReviewDate: null };allWords.push(newWordObj);saveState();addWordInput.value = ''; alert(`单词 "${newWordStr}" 已成功添加到您的词库！现在开始学习吧。`);currentWord = newWordObj;switchView('learn');mainWordEl.textContent = currentWord.word;speakBtn.classList.remove('hidden');loadWordDetails();updateUiForState('make_sentence'); }
+        
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
         
@@ -216,7 +246,33 @@
         btnUnknown.addEventListener('click', () => { loadWordDetails(); updateUiForState('make_sentence'); });
         btnConfirmKnown.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'known';allWords[wordIndex].srsLevel = -1;saveState();showNextWord(); });
         btnCorrection.addEventListener('click', () => { updateUiForState('make_sentence'); });
-        btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {const feedback = await getRealAiSentenceCheck(currentWord.word, userSentence);aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');} else {alert("请输入一个句子！");} });
+        
+        // (已更新) 提交按钮的事件处理逻辑
+        btnSubmitSentence.addEventListener('click', async () => {
+            const userSentence = sentenceInputEl.value.trim();
+            if (userSentence) {
+                // 1. 隐藏旧反馈，显示加载动画
+                aiFeedbackEl.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                
+                let feedback = '';
+                try {
+                    // 2. 调用AI获取反馈
+                    feedback = await getRealAiSentenceCheck(currentWord.word, userSentence);
+                } catch (e) {
+                    feedback = `❌ 请求AI时发生未知错误。`;
+                } finally {
+                    // 3. 无论成功与否，都隐藏加载动画
+                    loadingSpinner.classList.add('hidden');
+                    // 4. 显示新的反馈
+                    aiFeedbackEl.innerHTML = feedback;
+                    updateUiForState('show_feedback');
+                }
+            } else {
+                alert("请输入一个句子！");
+            }
+        });
+
         btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
         modeLearnBtn.addEventListener('click', () => switchView('learn'));
         modeReviewKnownBtn.addEventListener('click', () => switchView('review-known'));
