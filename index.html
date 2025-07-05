@@ -18,16 +18,9 @@
         #add-word-btn { border: none; background-color: #17a2b8; color: white; padding: 0 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
         #add-word-btn:hover { background-color: #138496; }
 
-        .mode-switcher { margin-bottom: 1.5rem; }
-        .mode-button { background: #fff; border: 1px solid #ccc; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin: 0 5px; }
+        .mode-switcher { margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+        .mode-button { background: #fff; border: 1px solid #ccc; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin: 0; }
         .mode-button.active { background: #007bff; color: white; border-color: #007bff; }
-
-        .review-list-view { display: none; padding: 1rem 1.5rem; background: #fff; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: left; max-height: 500px; overflow-y: auto;}
-        .review-list-view h3 { text-align: center; margin-top: 0;}
-        .review-list-view ul { list-style: none; padding: 0;}
-        .review-list-view li { padding: 0.75rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .delete-btn { background-color: #dc3545; color: white; border: none; border-radius: 5px; padding: 0.2rem 0.6rem; font-size: 0.8rem; cursor: pointer; opacity: 0.7; transition: opacity 0.2s ease; }
-        .delete-btn:hover { opacity: 1; }
 
         .word-card { background-color: #ffffff; padding: 2.5rem 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); min-height: 400px; display: flex; flex-direction: column; justify-content: center; }
         .word-header { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
@@ -72,6 +65,14 @@
             border-left: 4px solid #28a745;
             background-color: #f8f9fa;
         }
+        
+        /* 单词列表样式 */
+        .list-view { padding: 1rem; }
+        .word-list-container { margin-bottom: 2rem; }
+        .word-list-container h3 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; }
+        .word-list { list-style-type: none; padding: 0; }
+        .word-list li { background-color: #fff; padding: 0.75rem 1rem; margin-bottom: 0.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .delete-word-btn { background-color: #dc3545; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -86,8 +87,8 @@
             <button id="mode-learn" class="mode-button active">学习</button>
             <button id="mode-challenge" class="mode-button">造句大挑战</button>
             <button id="mode-translation-challenge" class="mode-button">翻译大挑战 ✍️</button>
-            <button id="mode-review-known" class="mode-button">已认识列表</button>
-            <button id="mode-review-learning" class="mode-button">待复习列表</button>
+            <button id="mode-known-list" class="mode-button">已认识列表</button>
+            <button id="mode-review-list" class="mode-button">待复习列表</button>
         </div>
 
         <!-- 学习视图 -->
@@ -177,14 +178,29 @@
             </div>
         </div>
 
-        <div id="review-known-view" class="review-list-view"> <h3>已认识的单词</h3> <ul id="known-list"></ul> </div>
-        <div id="review-learning-view" class="review-list-view"> <h3>待复习的单词</h3> <ul id="learning-list"></ul> </div>
+        <!-- 已认识列表视图 -->
+        <div id="known-list-view" class="list-view hidden">
+            <div class="word-list-container">
+                <h3>已认识列表</h3>
+                <ul id="known-words-list" class="word-list"></ul>
+            </div>
+        </div>
+
+        <!-- 待复习列表视图 -->
+        <div id="review-list-view" class="list-view hidden">
+            <div class="word-list-container">
+                <h3>待复习列表</h3>
+                <ul id="review-words-list" class="word-list"></ul>
+            </div>
+        </div>
     </main>
 
     <script>
         // --- 1. 配置和常量 ---
         const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
-        const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心';
+        const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心'; // 恢复为原始key
+        const LOCAL_STORAGE_KEY_KNOWN = 'mySmartWordBook_knownList';
+        const LOCAL_STORAGE_KEY_REVIEW = 'mySmartWordBook_reviewList';
         const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
         const NEW_WORDS_PER_SESSION = 5;
 
@@ -213,12 +229,6 @@
         const btnFinishLearning = document.getElementById('btn-finish-learning');
         const modeLearnBtn = document.getElementById('mode-learn');
         const modeChallengeBtn = document.getElementById('mode-challenge');
-        const modeReviewKnownBtn = document.getElementById('mode-review-known');
-        const modeReviewLearningBtn = document.getElementById('mode-review-learning');
-        const reviewKnownView = document.getElementById('review-known-view');
-        const reviewLearningView = document.getElementById('review-learning-view');
-        const knownListEl = document.getElementById('known-list');
-        const learningListEl = document.getElementById('learning-list');
         const challengeView = document.getElementById('challenge-view');
         const challengeSetup = document.getElementById('challenge-setup');
         const challengeArea = document.getElementById('challenge-area');
@@ -244,6 +254,15 @@
         const actionsTranslationChallenge = document.getElementById('actions-translation-challenge');
         const btnSubmitTranslation = document.getElementById('btn-submit-translation');
         const btnNextTranslationChallenge = document.getElementById('btn-next-translation-challenge');
+        
+        // 新增列表元素
+        const modeKnownListBtn = document.getElementById('mode-known-list');
+        const modeReviewListBtn = document.getElementById('mode-review-list');
+        const knownListView = document.getElementById('known-list-view');
+        const reviewListView = document.getElementById('review-list-view');
+        const knownWordsListEl = document.getElementById('known-words-list');
+        const reviewWordsListEl = document.getElementById('review-words-list');
+
 
         // --- 3. 状态管理 ---
         let allWords = [];
@@ -251,9 +270,20 @@
         let currentWord = null;
         let challengeWords = [];
         let currentChineseSentence = '';
+        let knownWords = [];
+        let reviewWords = [];
 
-        function loadState() { return localStorage.getItem(LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) : []; }
-        function saveState() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords)); }
+
+        function loadState() {
+            allWords = localStorage.getItem(LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) : [];
+            knownWords = localStorage.getItem(LOCAL_STORAGE_KEY_KNOWN) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_KNOWN)) : [];
+            reviewWords = localStorage.getItem(LOCAL_STORAGE_KEY_REVIEW) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_REVIEW)) : [];
+        }
+        function saveState() {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords));
+            localStorage.setItem(LOCAL_STORAGE_KEY_KNOWN, JSON.stringify(knownWords));
+            localStorage.setItem(LOCAL_STORAGE_KEY_REVIEW, JSON.stringify(reviewWords));
+        }
         
         // --- 4. UI状态机和视图切换 ---
         function updateUiForState(state) {
@@ -290,8 +320,8 @@
             learnView.classList.add('hidden');
             challengeView.classList.add('hidden');
             translationChallengeView.classList.add('hidden');
-            reviewKnownView.classList.add('hidden');
-            reviewLearningView.classList.add('hidden');
+            knownListView.classList.add('hidden');
+            reviewListView.classList.add('hidden');
             
             document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
 
@@ -304,54 +334,74 @@
             } else if (mode === 'translation-challenge') {
                 translationChallengeView.classList.remove('hidden');
                 modeTranslationChallengeBtn.classList.add('active');
-            } else if (mode === 'review-known') {
-                reviewKnownView.classList.remove('hidden');
-                modeReviewKnownBtn.classList.add('active');
-                populateReviewList(knownListEl, 'known');
-            } else if (mode === 'review-learning') {
-                reviewLearningView.classList.remove('hidden');
-                modeReviewLearningBtn.classList.add('active');
-                populateReviewList(learningListEl, 'learning');
+            } else if (mode === 'known-list') {
+                knownListView.classList.remove('hidden');
+                modeKnownListBtn.classList.add('active');
+                populateKnownList();
+            } else if (mode === 'review-list') {
+                reviewListView.classList.remove('hidden');
+                modeReviewListBtn.classList.add('active');
+                populateReviewList();
             }
         }
-        function populateReviewList(listElement, status) {
-            const words = allWords.filter(w => w.status === status);
-            listElement.innerHTML = '';
-            if (words.length === 0) {
-                listElement.innerHTML = '<li>列表为空</li>';
-                return;
-            }
-            words.sort((a, b) => a.word.localeCompare(b.word));
-            words.forEach(wordObj => {
+
+        function populateKnownList() {
+            knownWordsListEl.innerHTML = '';
+            knownWords.forEach(word => {
                 const li = document.createElement('li');
-                const wordSpan = document.createElement('span');
-                let text = wordObj.word;
-                if(status === 'learning' && wordObj.nextReviewDate) {
-                    text += ` (下次复习: ${new Date(wordObj.nextReviewDate).toLocaleDateString()})`;
-                }
-                wordSpan.textContent = text;
+                li.textContent = word;
                 const deleteBtn = document.createElement('button');
                 deleteBtn.textContent = '删除';
-                deleteBtn.className = 'delete-btn';
-                deleteBtn.dataset.word = wordObj.word;
-                deleteBtn.addEventListener('click', handleDeleteWord);
-                li.appendChild(wordSpan);
+                deleteBtn.className = 'delete-word-btn';
+                deleteBtn.onclick = () => handleDeleteWord(word, 'known');
                 li.appendChild(deleteBtn);
-                listElement.appendChild(li);
+                knownWordsListEl.appendChild(li);
             });
         }
+
+        function populateReviewList() {
+            reviewWordsListEl.innerHTML = '';
+            reviewWords.forEach(word => {
+                const li = document.createElement('li');
+                li.textContent = word;
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '删除';
+                deleteBtn.className = 'delete-word-btn';
+                deleteBtn.onclick = () => handleDeleteWord(word, 'review');
+                li.appendChild(deleteBtn);
+                reviewWordsListEl.appendChild(li);
+            });
+        }
+        
+        function addToList(listName, word) {
+            let list, otherList;
+            if (listName === 'known') {
+                list = knownWords;
+                otherList = reviewWords;
+            } else if (listName === 'review') {
+                list = reviewWords;
+                otherList = knownWords;
+            } else { return; }
+
+            if (!list.includes(word)) { list.push(word); }
+            const otherIndex = otherList.indexOf(word);
+            if (otherIndex > -1) { otherList.splice(otherIndex, 1); }
+            
+            saveState();
+        }
+
 
         // --- 5. 核心学习逻辑 ---
         function speakWord(text) { if ('speechSynthesis' in window && text) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US'; utterance.rate = 0.9; window.speechSynthesis.speak(utterance); } }
         function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
         function buildLearningQueue() { const today = new Date().setHours(0, 0, 0, 0); const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today); const newWords = allWords.filter(word => word.status === 'new'); shuffleArray(wordsToReview); shuffleArray(newWords); learningQueue = [...wordsToReview]; if (wordsToReview.length === 0 && newWords.length > 0) { learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION); } }
         function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');speakBtn.classList.remove('hidden');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;speakBtn.classList.add('hidden');}}
+        
+        // 恢复为原始的API调用函数
         async function loadWordDetails() {
              pronunciationEl.textContent = '...';
              definitionEl.textContent = '正在获取中文释义...';
              try {
-                //  NOTE: This fetch call will likely fail unless you have a backend server running.
-                //  This is a placeholder for your actual API endpoint.
                  const response = await fetch('/api/get-definition', { 
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
@@ -370,6 +420,7 @@
                  definitionEl.textContent = `释义加载失败。这是一个本地演示。`;
              }
         }
+
         function startNewChallenge() { const wordCount = parseInt(wordCountSelector.value); const availableWords = allWords.filter(w => w.status !== 'known'); if (availableWords.length < wordCount) { alert(`词库中可供挑战的单词不足${wordCount}个！`); return; } shuffleArray(availableWords); challengeWords = availableWords.slice(0, wordCount).map(w => w.word); challengeWordsDisplay.innerHTML = ''; challengeWords.forEach(word => { const itemDiv = document.createElement('div'); itemDiv.className = 'challenge-word-item'; const wordSpan = document.createElement('span'); wordSpan.textContent = word; const checkboxLabel = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.word = word; checkboxLabel.appendChild(checkbox); checkboxLabel.append(' 不认识'); itemDiv.appendChild(wordSpan); itemDiv.appendChild(checkboxLabel); challengeWordsDisplay.appendChild(itemDiv); }); challengeSetup.classList.add('hidden'); challengeArea.classList.remove('hidden'); challengeSentenceInput.value = ''; challengeAiFeedback.classList.add('hidden'); actionsChallenge.classList.remove('hidden'); btnSubmitChallenge.classList.remove('hidden'); btnNextChallenge.classList.add('hidden'); }
         async function startNewTranslationChallenge() {
             const topic = translationTopicInput.value.trim();
@@ -387,7 +438,6 @@
             translationLoadingSpinner.classList.remove('hidden');
             translationChineseSentenceEl.textContent = 'AI 正在为您生成中文句子...';
             try {
-                //  NOTE: This fetch call will likely fail unless you have a backend server running.
                 const response = await fetch('/api/get-translation-challenge', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -408,7 +458,6 @@
         // --- 6. 连接真实AI ---
         async function getRealAiSentenceCheck(words, sentence) {
             try {
-                //  NOTE: This fetch call will likely fail unless you have a backend server running.
                 const response = await fetch('/api/check-sentence', { 
                     method: 'POST',
                     headers: {'Content-Type': 'application/json',},
@@ -428,7 +477,6 @@
         }
         async function getRealAiTranslationCheck(original, translation) {
             try {
-                //  NOTE: This fetch call will likely fail unless you have a backend server running.
                 const response = await fetch('/api/check-translation', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -449,88 +497,76 @@
 
 
         // --- 7. 事件处理 ---
-        function handleDeleteWord(event) { const wordToDelete = event.target.dataset.word;if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {const wordIndex = allWords.findIndex(w => w.word === wordToDelete);if (wordIndex > -1) {allWords.splice(wordIndex, 1);saveState();const currentView = document.querySelector('.mode-button.active').id;if (currentView === 'mode-review-known') {populateReviewList(knownListEl, 'known');} else if (currentView === 'mode-review-learning') {populateReviewList(learningListEl, 'learning');}}}}
+        function handleDeleteWord(word, listName) {
+            if (listName === 'known') {
+                knownWords = knownWords.filter(w => w !== word);
+                populateKnownList();
+            } else if (listName === 'review') {
+                reviewWords = reviewWords.filter(w => w !== word);
+                populateReviewList();
+            }
+            saveState();
+        }
+
         function handleAddWordClick() {
             const newWordStr = addWordInput.value.trim().toLowerCase();
-            if (!newWordStr) {
-                alert('请输入一个单词。');
-                return;
-            }
-            const existingWord = allWords.find(w => w.word === newWordStr);
-            if (existingWord) {
-                alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`);
-                return;
-            }
+            if (!newWordStr) { alert('请输入一个单词。'); return; }
+            if (allWords.some(w => w.word === newWordStr)) { alert(`单词 "${newWordStr}" 已存在于您的词库中。`); return; }
 
-            // --- 修改: 将新单词的状态直接设置为 'learning' ---
-            const nextReviewDate = new Date();
-            nextReviewDate.setDate(nextReviewDate.getDate() + SRS_INTERVALS_DAYS[0]);
             const newWordObj = {
                 word: newWordStr,
                 status: 'learning',
                 srsLevel: 0,
-                nextReviewDate: nextReviewDate.toISOString()
+                nextReviewDate: new Date().toISOString()
             };
-            // --- 修改结束 ---
 
             allWords.push(newWordObj);
-            saveState();
+            addToList('review', newWordStr);
             addWordInput.value = '';
-            alert(`单词 "${newWordStr}" 已成功添加到您的“待复习列表”！`);
-            
-            // 刷新当前视图
-            const currentView = document.querySelector('.mode-button.active').id.replace('mode-review-', '');
-            if (currentView === 'learning') {
-                populateReviewList(learningListEl, 'learning');
-            }
+            alert(`单词 "${newWordStr}" 已成功添加到待复习列表！`);
+            showNextWord();
         }
         
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
         
-        // --- 修改: 点击“认识”时，立即将单词状态改为 'known' ---
         btnKnown.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
             if (wordIndex > -1) {
                 allWords[wordIndex].status = 'known';
                 allWords[wordIndex].srsLevel = -1;
                 allWords[wordIndex].nextReviewDate = null;
-                saveState();
+                addToList('known', currentWord.word);
             }
             loadWordDetails();
             updateUiForState('show_answer');
         });
 
-        // --- 修改: 点击“不认识”时，立即将单词状态改为 'learning' ---
         btnUnknown.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
             if (wordIndex > -1) {
                 allWords[wordIndex].status = 'learning';
-                allWords[wordIndex].srsLevel = 0; // 重置SRS等级
+                allWords[wordIndex].srsLevel = 0;
                 const nextReviewDate = new Date();
                 nextReviewDate.setDate(nextReviewDate.getDate() + SRS_INTERVALS_DAYS[0]);
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
-                saveState();
+                addToList('review', currentWord.word);
             }
             loadWordDetails();
             updateUiForState('make_sentence');
         });
-        // --- 修改结束 ---
 
-        btnConfirmKnown.addEventListener('click', () => {
-            showNextWord();
-        });
+        btnConfirmKnown.addEventListener('click', () => { showNextWord(); });
 
         btnCorrection.addEventListener('click', () => { 
-            // 修正时，确保单词回到待复习列表
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
              if (wordIndex > -1) {
                 allWords[wordIndex].status = 'learning';
-                allWords[wordIndex].srsLevel = 0; // 重置SRS等级
+                allWords[wordIndex].srsLevel = 0;
                 const nextReviewDate = new Date();
                 nextReviewDate.setDate(nextReviewDate.getDate() + SRS_INTERVALS_DAYS[0]);
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
-                saveState();
+                addToList('review', currentWord.word);
             }
             updateUiForState('make_sentence'); 
         });
@@ -539,42 +575,38 @@
         
         btnFinishLearning.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
-            allWords[wordIndex].status = 'learning'; 
-            let currentLevel = allWords[wordIndex].srsLevel;
-            
-            if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {
-                allWords[wordIndex].srsLevel++;
+            if (wordIndex > -1) {
+                allWords[wordIndex].status = 'learning'; 
+                let currentLevel = allWords[wordIndex].srsLevel;
+                if (currentLevel < SRS_INTERVALS_DAYS.length - 1) { allWords[wordIndex].srsLevel++; }
+                const interval = SRS_INTERVALS_DAYS[allWords[wordIndex].srsLevel];
+                const nextReviewDate = new Date();
+                nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+                allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
+                saveState();
             }
-            const interval = SRS_INTERVALS_DAYS[allWords[wordIndex].srsLevel];
-            
-            const nextReviewDate = new Date();
-            nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-            allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
-            saveState();
             showNextWord();
         });
         
         btnStartChallenge.addEventListener('click', startNewChallenge);
         btnNextChallenge.addEventListener('click', startNewChallenge);
+        
         btnSubmitChallenge.addEventListener('click', async () => {
             const userSentence = challengeSentenceInput.value.trim();
-            if (!userSentence) {
-                alert('请输入您的句子！');
-                return;
-            }
+            if (!userSentence) { alert('请输入您的句子！'); return; }
 
             const unknownWordsCheckboxes = challengeWordsDisplay.querySelectorAll('input[type="checkbox"]:checked');
             unknownWordsCheckboxes.forEach(checkbox => {
                 const wordToMark = checkbox.dataset.word;
                 const wordIndex = allWords.findIndex(w => w.word === wordToMark);
-                if (wordIndex > -1 && allWords[wordIndex].status !== 'known') {
+                if (wordIndex > -1) {
                     const wordObj = allWords[wordIndex];
                     wordObj.status = 'learning';
                     wordObj.srsLevel = 0;
-                    const interval = SRS_INTERVALS_DAYS[wordObj.srsLevel];
                     const nextReviewDate = new Date();
-                    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+                    nextReviewDate.setDate(nextReviewDate.getDate() + SRS_INTERVALS_DAYS[0]);
                     wordObj.nextReviewDate = nextReviewDate.toISOString();
+                    addToList('review', wordToMark);
                 }
             });
             saveState();
@@ -598,8 +630,9 @@
         modeLearnBtn.addEventListener('click', () => switchView('learn'));
         modeChallengeBtn.addEventListener('click', () => switchView('challenge'));
         modeTranslationChallengeBtn.addEventListener('click', () => switchView('translation-challenge'));
-        modeReviewKnownBtn.addEventListener('click', () => switchView('review-known'));
-        modeReviewLearningBtn.addEventListener('click', () => switchView('review-learning'));
+        modeKnownListBtn.addEventListener('click', () => switchView('known-list'));
+        modeReviewListBtn.addEventListener('click', () => switchView('review-list'));
+
         btnStartTranslationChallenge.addEventListener('click', startNewTranslationChallenge);
         btnNextTranslationChallenge.addEventListener('click', () => {
             translationChallengeSetup.classList.remove('hidden');
@@ -608,10 +641,7 @@
         });
         btnSubmitTranslation.addEventListener('click', async () => {
             const userTranslation = translationChallengeInput.value.trim();
-            if (!userTranslation) {
-                alert('请输入您的翻译！');
-                return;
-            }
+            if (!userTranslation) { alert('请输入您的翻译！'); return; }
             
             translationAiFeedback.classList.add('hidden');
             translationLoadingSpinner.classList.remove('hidden');
@@ -631,7 +661,7 @@
 
         // --- 8. 初始化应用 ---
         async function initializeApp() {
-            allWords = loadState();
+            loadState();
             if (allWords.length === 0) {
                 mainWordEl.textContent = "首次加载，正在同步云端词库...";
                 try {
