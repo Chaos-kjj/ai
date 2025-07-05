@@ -10,56 +10,51 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Word is required.' });
   }
 
-  // 2. 准备向 SiliconCloud API 发送的请求
-  const apiKey = process.env.GOOGLE_API_KEY; 
-  const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
+  // 2. (已更新) 直接调用免费的英汉词典API
+  // 我们将使用一个公共的、无需密钥的词典服务
+  const dictionaryApiUrl = `https://dict.youdao.com/jsonapi?q=${word}`;
 
-  const payload = {
-    model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
-    messages: [
-      {
-        role: "system",
-        content: "你是一个精准的英汉词典。你的任务是为用户提供的单词返回其音标和最核心的中文释义。你必须严格按照用户要求的JSON格式返回，不要包含任何额外的解释或文字。"
-      },
-      {
-        role: "user",
-        content: `请提供单词 "${word}" 的信息。返回的JSON格式必须是：{"pronunciation": "这里是音标", "definition": "这里是中文释义"}`
-      }
-    ],
-    response_format: { "type": "json_object" }
-  };
-
-  // 3. 发送请求并处理响应
   try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(payload)
-    });
-
+    const response = await fetch(dictionaryApiUrl);
+    
     if (!response.ok) {
-      const errorBody = await response.text();
-      throw new Error(`SiliconCloud API error: ${response.status} ${errorBody}`);
+      throw new Error(`Dictionary API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const content = data.choices[0].message.content;
-    
-    // (已更新) 更强大的JSON提取和解析逻辑
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-        throw new Error("AI response did not contain a valid JSON object.");
-    }
-    const jsonString = jsonMatch[0];
-    const definitionJson = JSON.parse(jsonString);
 
-    res.status(200).json(definitionJson);
+    // 3. 从复杂的返回数据中解析出我们需要的信息
+    let pronunciation = '';
+    let definition = '未找到释义。';
+
+    // 尝试获取英式或美式音标
+    if (data.ec && data.ec.word && data.ec.word[0]) {
+        const wordData = data.ec.word[0];
+        if (wordData.ukphone) {
+            pronunciation = `[${wordData.ukphone}]`;
+        } else if (wordData.usphone) {
+            pronunciation = `[${wordData.usphone}]`;
+        }
+    }
+
+    // 尝试获取中文释义
+    if (data.ec && data.ec.word && data.ec.word[0].trs) {
+        // 将所有词性的释义拼接起来
+        const definitions = data.ec.word[0].trs.map(tr => tr.tr[0].l.i[0]).join('; ');
+        if (definitions) {
+            definition = definitions;
+        }
+    }
+    
+    // 4. 将解析好的数据返回给前端
+    res.status(200).json({
+      pronunciation: pronunciation,
+      definition: definition
+    });
 
   } catch (error) {
     console.error('Get Definition Backend Error:', error);
-    res.status(500).json({ error: 'Failed to get definition from AI.', details: error.message });
+    res.status(500).json({ error: 'Failed to get definition from dictionary.', details: error.message });
   }
 };
+
