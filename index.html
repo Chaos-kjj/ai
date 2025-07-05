@@ -69,10 +69,12 @@
     
     <main>
         <h1 id="app-title">康康背词器</h1>
+        
         <div id="add-word-container">
-            <input type="text" id="add-word-input" placeholder="输入一个新单词...">
+            <input type="text" id="add-word-input" placeholder="向词库添加新单词...">
             <button id="add-word-btn">添加并学习</button>
         </div>
+
         <div class="mode-switcher">
             <button id="mode-learn" class="mode-button active">学习</button>
             <button id="mode-challenge" class="mode-button">造句大挑战</button>
@@ -148,7 +150,7 @@
     <script>
         // --- 1. 配置和常量 ---
         const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
-        const BASE_LOCAL_STORAGE_KEY = 'mySmartWordBook';
+        const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心'; // 使用一个固定的键
         const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
         const NEW_WORDS_PER_SESSION = 5;
 
@@ -203,8 +205,13 @@
         let currentWord = null;
         let challengeWords = [];
 
-        function loadState() { return localStorage.getItem(BASE_LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(BASE_LOCAL_STORAGE_KEY)) : []; }
-        function saveState() { localStorage.setItem(BASE_LOCAL_STORAGE_KEY, JSON.stringify(allWords)); }
+        function loadState() {
+            const stateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
+            return stateJSON ? JSON.parse(stateJSON) : [];
+        }
+        function saveState() {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords));
+        }
         
         // --- 4. UI状态机和视图切换 ---
         function updateUiForState(state) { /* ...与上一版相同... */ wordDetailsEl.classList.add('hidden');sentenceMakerEl.classList.add('hidden');aiFeedbackEl.classList.add('hidden');actionsInitial.classList.add('hidden');actionsConfirm.classList.add('hidden');actionsSentence.classList.add('hidden');actionsFinish.classList.add('hidden');switch (state) {case 'reveal_word':actionsInitial.classList.remove('hidden');break;case 'show_answer':wordDetailsEl.classList.remove('hidden');actionsConfirm.classList.remove('hidden');break;case 'make_sentence':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');sentenceInputEl.value = '';actionsSentence.classList.remove('hidden');break;case 'show_feedback':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');aiFeedbackEl.classList.remove('hidden');actionsFinish.classList.remove('hidden');break;}}
@@ -261,7 +268,7 @@
 
         // --- 7. 事件处理 ---
         function handleDeleteWord(event) { /* ...与上一版相同... */ const wordToDelete = event.target.dataset.word;if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {const wordIndex = allWords.findIndex(w => w.word === wordToDelete);if (wordIndex > -1) {allWords.splice(wordIndex, 1);saveState();const currentView = document.querySelector('.mode-button.active').id;if (currentView === 'mode-review-known') {populateReviewList(knownListEl, 'known');} else if (currentView === 'mode-review-learning') {populateReviewList(learningListEl, 'learning');}}}}
-        function handleAddWordClick() { /* ...与上一版相同... */ const newWordStr = addWordInput.value.trim().toLowerCase();if (!newWordStr) { alert('请输入一个单词。'); return; }const existingWord = allWords.find(w => w.word === newWordStr);if (existingWord) { alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`); return; }const newWordObj = { word: newWordStr, status: 'new', srsLevel: 0, nextReviewDate: null };allWords.push(newWordObj);saveState();addWordInput.value = ''; alert(`单词 "${newWordStr}" 已成功添加到您的词库！现在开始学习吧。`);currentWord = newWordObj;switchView('learn');mainWordEl.textContent = currentWord.word;speakBtn.classList.remove('hidden');loadWordDetails();updateUiForState('make_sentence'); }
+        function handleAddWordClick() { /* ...与上一版相同... */ const newWordStr = addWordInput.value.trim().toLowerCase();if (!newWordStr) { alert('请输入一个单词。'); return; } const existingWord = allWords.find(w => w.word === newWordStr);if (existingWord) { alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`); return; }const newWordObj = { word: newWordStr, status: 'new', srsLevel: 0, nextReviewDate: null };allWords.push(newWordObj);saveState();addWordInput.value = ''; alert(`单词 "${newWordStr}" 已成功添加到您的词库！现在开始学习吧。`);currentWord = newWordObj;switchView('learn');mainWordEl.textContent = currentWord.word;speakBtn.classList.remove('hidden');loadWordDetails();updateUiForState('make_sentence'); }
         
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
@@ -289,7 +296,6 @@
                 if (wordIndex > -1 && allWords[wordIndex].status !== 'known') {
                     const wordObj = allWords[wordIndex];
                     wordObj.status = 'learning';
-                    // (已修复) 为标记不认识的单词设置完整的复习计划
                     wordObj.srsLevel = 0;
                     const interval = SRS_INTERVALS_DAYS[wordObj.srsLevel];
                     const nextReviewDate = new Date();
@@ -322,40 +328,55 @@
 
         // --- 8. 初始化应用 ---
         async function initializeApp() {
-            let loadedWords = loadState();
+            let loadedData = loadState();
+            let migratedWords = [];
 
-            // (已修复) 增加数据迁移逻辑，处理旧格式数据
-            if (loadedWords.length > 0 && typeof loadedWords[0] === 'string') {
-                allWords = loadedWords.map(word => ({
-                    word: word,
-                    status: 'new',
-                    srsLevel: 0,
-                    nextReviewDate: null
-                }));
-                saveState();
-            } else {
-                allWords = loadedWords;
+            // (已修复) 更健壮的数据迁移和验证逻辑
+            if (loadedData.length > 0) {
+                migratedWords = loadedData.map(item => {
+                    if (typeof item === 'string') {
+                        return { word: item, status: 'new', srsLevel: 0, nextReviewDate: null };
+                    }
+                    if (typeof item === 'object' && item !== null && item.word) {
+                        return {
+                            word: item.word,
+                            status: item.status || 'new',
+                            srsLevel: item.srsLevel !== undefined ? item.srsLevel : 0,
+                            nextReviewDate: item.nextReviewDate || null
+                        };
+                    }
+                    return null;
+                }).filter(Boolean);
             }
 
-             if (allWords.length === 0) {
+            allWords = migratedWords;
+
+            if (allWords.length === 0) {
                  try {
                      const response = await fetch(WORD_LIST_URL);
                      if (!response.ok) throw new Error('无法获取云端词库');
                      const wordList = await response.json();
-                     // 确保 fetched data is an array
+                     let initialWords = [];
                      if (Array.isArray(wordList)) {
-                        allWords = wordList.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
-                        saveState();
+                        initialWords = wordList;
                      } else {
-                        throw new Error('云端词库格式不正确');
+                        const firstListName = Object.keys(wordList)[0];
+                        if (firstListName) {
+                            initialWords = wordList[firstListName];
+                        } else {
+                            throw new Error('云端词库格式不正确');
+                        }
                      }
+                     allWords = initialWords.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
                  } catch (error) {
                      learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
                      return;
                  }
-             }
-             switchView('learn');
-             showNextWord();
+            }
+            
+            saveState();
+            switchView('learn');
+            showNextWord();
         }
 
         initializeApp();
