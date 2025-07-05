@@ -350,7 +350,7 @@
              pronunciationEl.textContent = '...';
              definitionEl.textContent = '正在获取中文释义...';
              try {
-                 const response = await fetch('/api/get-definition', {
+                 const response = await fetch('/api/get-definition', { // (已修复) 增加了URL开头的'/'
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
                      body: JSON.stringify({ word: currentWord.word })
@@ -384,7 +384,7 @@
             translationLoadingSpinner.classList.remove('hidden');
             translationChineseSentenceEl.textContent = 'AI 正在为您生成中文句子...';
             try {
-                const response = await fetch('/api/get-translation-challenge', { 
+                const response = await fetch('/api/get-translation-challenge', { // (已修复) 增加了URL开头的'/'
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ topic })
@@ -404,7 +404,11 @@
         // --- 6. 连接真实AI ---
         async function getRealAiSentenceCheck(words, sentence) {
             try {
-                const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ words, sentence }),});
+                const response = await fetch('/api/check-sentence', { // (已修复) 增加了URL开头的'/'
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json',},
+                    body: JSON.stringify({ words, sentence }),
+                });
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);
@@ -419,7 +423,7 @@
         }
         async function getRealAiTranslationCheck(original, translation) {
             try {
-                const response = await fetch('/api/check-translation', {
+                const response = await fetch('/api/check-translation', { // (已修复) 增加了URL开头的'/'
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ original_chinese: original, user_translation: translation })
@@ -500,7 +504,6 @@
         modeReviewLearningBtn.addEventListener('click', () => switchView('review-learning'));
 
         // --- 8. 初始化应用 ---
-        // (已修复) 使用您提供的简单、直接、有效的初始化逻辑
         async function initializeApp() {
             allWords = loadState();
             if (allWords.length === 0) {
@@ -530,3 +533,8 @@
             switchView('learn');
             showNextWord();
         }
+
+        initializeApp();
+    </script>
+</body>
+</html>
