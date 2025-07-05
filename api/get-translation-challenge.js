@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "meta-llama/Meta-Llama-3-8B-Instruct", // (已更新) 更换为更稳定的Llama 3模型
+    model: "Qwen/Qwen3-8B", // (已更新) 更换为您指定的Qwen模型
     messages: [
       {
         role: "system",
@@ -47,8 +47,7 @@ module.exports = async (req, res) => {
 
     const data = await response.json();
     const content = data.choices[0].message.content;
-
-    // (已修复) 更强大的JSON提取和解析逻辑
+    
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
         throw new Error("AI response did not contain a valid JSON object.");
