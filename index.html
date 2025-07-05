@@ -66,7 +66,6 @@
             background-color: #f8f9fa;
         }
         
-        /* 单词列表样式 */
         .list-view { padding: 1rem; }
         .word-list-container { margin-bottom: 2rem; }
         .word-list-container h3 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; }
@@ -198,7 +197,7 @@
     <script>
         // --- 1. 配置和常量 ---
         const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
-        const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心'; // 恢复为原始key
+        const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心';
         const LOCAL_STORAGE_KEY_KNOWN = 'mySmartWordBook_knownList';
         const LOCAL_STORAGE_KEY_REVIEW = 'mySmartWordBook_reviewList';
         const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
@@ -255,7 +254,6 @@
         const btnSubmitTranslation = document.getElementById('btn-submit-translation');
         const btnNextTranslationChallenge = document.getElementById('btn-next-translation-challenge');
         
-        // 新增列表元素
         const modeKnownListBtn = document.getElementById('mode-known-list');
         const modeReviewListBtn = document.getElementById('mode-review-list');
         const knownListView = document.getElementById('known-list-view');
@@ -397,7 +395,7 @@
         function buildLearningQueue() { const today = new Date().setHours(0, 0, 0, 0); const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today); const newWords = allWords.filter(word => word.status === 'new'); shuffleArray(wordsToReview); shuffleArray(newWords); learningQueue = [...wordsToReview]; if (wordsToReview.length === 0 && newWords.length > 0) { learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION); } }
         function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');speakBtn.classList.remove('hidden');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;speakBtn.classList.add('hidden');}}
         
-        // 恢复为原始的API调用函数
+        // 恢复为使用你自己的API
         async function loadWordDetails() {
              pronunciationEl.textContent = '...';
              definitionEl.textContent = '正在获取中文释义...';
@@ -417,7 +415,7 @@
              } catch (error) {
                  console.error("加载单词详情失败:", error);
                  pronunciationEl.textContent = `[${currentWord.word}]`;
-                 definitionEl.textContent = `释义加载失败。这是一个本地演示。`;
+                 definitionEl.textContent = `释义加载失败。请检查后端API是否在本地运行，或网络连接是否正常。`;
              }
         }
 
@@ -438,6 +436,7 @@
             translationLoadingSpinner.classList.remove('hidden');
             translationChineseSentenceEl.textContent = 'AI 正在为您生成中文句子...';
             try {
+                // 此处为AI生成句子的占位符，实际使用需替换为真实API
                 const response = await fetch('/api/get-translation-challenge', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -455,7 +454,7 @@
             }
         }
 
-        // --- 6. 连接真实AI ---
+        // --- 6. 连接真实AI (占位) ---
         async function getRealAiSentenceCheck(words, sentence) {
             try {
                 const response = await fetch('/api/check-sentence', { 
@@ -530,6 +529,13 @@
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
         
+        /**
+         * BUG修复: 调整执行顺序
+         * 之前: 处理数据 -> 请求API -> 更新UI
+         * 问题: 如果API请求失败，UI更新就不会执行，导致界面卡死。
+         * 现在: 处理数据 -> 更新UI -> 请求API
+         * 效果: 无论API请求成功与否，UI都会立刻响应，保证了应用的流畅性。
+         */
         btnKnown.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
             if (wordIndex > -1) {
@@ -538,8 +544,9 @@
                 allWords[wordIndex].nextReviewDate = null;
                 addToList('known', currentWord.word);
             }
-            loadWordDetails();
+            // 关键改动：先更新UI，再加载数据
             updateUiForState('show_answer');
+            loadWordDetails();
         });
 
         btnUnknown.addEventListener('click', () => {
@@ -552,8 +559,9 @@
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
                 addToList('review', currentWord.word);
             }
-            loadWordDetails();
+            // 关键改动：先更新UI，再加载数据
             updateUiForState('make_sentence');
+            loadWordDetails();
         });
 
         btnConfirmKnown.addEventListener('click', () => { showNextWord(); });
@@ -568,6 +576,7 @@
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
                 addToList('review', currentWord.word);
             }
+            // 关键改动：先更新UI
             updateUiForState('make_sentence'); 
         });
 
