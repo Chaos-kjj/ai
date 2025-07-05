@@ -11,44 +11,12 @@
 
         /* --- 样式部分 --- */
         .hidden { display: none !important; }
-
-        #app-title {
-            font-size: 2.8rem;
-            font-weight: 300;
-            color: #555;
-            letter-spacing: 4px;
-            margin: 1rem 0 2rem 0;
-        }
+        #app-title { font-size: 2.8rem; font-weight: 300; color: #555; letter-spacing: 4px; margin: 1rem 0 2rem 0; }
         
-        #add-word-container {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 1.5rem;
-            background-color: #fff;
-            padding: 1rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
-        }
-        #add-word-input {
-            flex-grow: 1;
-            border: 1px solid #ccc;
-            padding: 0.75rem;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-        #add-word-btn {
-            border: none;
-            background-color: #17a2b8;
-            color: white;
-            padding: 0 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background-color 0.2s;
-        }
-        #add-word-btn:hover {
-            background-color: #138496;
-        }
+        #add-word-container { display: flex; gap: 10px; margin-bottom: 1.5rem; background-color: #fff; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+        #add-word-input { flex-grow: 1; border: 1px solid #ccc; padding: 0.75rem; border-radius: 8px; font-size: 1rem; }
+        #add-word-btn { border: none; background-color: #17a2b8; color: white; padding: 0 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        #add-word-btn:hover { background-color: #138496; }
 
         .mode-switcher { margin-bottom: 1.5rem; }
         .mode-button { background: #fff; border: 1px solid #ccc; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin: 0 5px; }
@@ -70,48 +38,42 @@
         .speak-btn:hover { background-color: #f0f0f0; }
         .speak-btn svg { width: 28px; height: 28px; fill: #555; }
 
-        #sentence-maker { margin-top: 1.5rem; }
-        #sentence-input { width: 100%; min-height: 80px; padding: 0.5rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
-        #ai-feedback { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; text-align: left;}
+        #sentence-maker, #challenge-sentence-maker { margin-top: 1.5rem; }
+        #sentence-input, #challenge-sentence-input { width: 100%; min-height: 80px; padding: 0.5rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
+        #ai-feedback, #challenge-ai-feedback { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; text-align: left;}
 
-        /* (新增) 加载动画样式 */
-        #loading-spinner {
-            border: 4px solid #f3f3f3; /* 浅灰色背景环 */
-            border-top: 4px solid #007bff; /* 蓝色旋转部分 */
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 2rem auto; /* 居中显示 */
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        #loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .actions { margin-top: 2rem; display: flex; justify-content: space-around; }
         .action-button { width: 45%; border: none; padding: 1rem; border-radius: 50px; font-size: 1.2rem; cursor: pointer; transition: all 0.2s ease; }
         #btn-unknown { background-color: #ffc107; }
         #btn-known, #btn-confirm-known { background-color: #28a745; color: white; }
-        #btn-correction, #btn-submit-sentence, #btn-finish-learning { background-color: #007bff; color: white; }
+        #btn-correction, #btn-submit-sentence, #btn-finish-learning, #btn-start-challenge, #btn-submit-challenge, #btn-next-challenge { background-color: #007bff; color: white; }
+        
+        /* (新增) 挑战模式特定样式 */
+        #challenge-setup { padding: 2rem; }
+        #challenge-words-display { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 1.5rem; }
+        .challenge-word-item { display: flex; align-items: center; gap: 8px; background: #fff; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; }
+        .challenge-word-item label { font-size: 0.8rem; cursor: pointer; }
     </style>
 </head>
 <body>
     
     <main>
         <h1 id="app-title">康康背词器</h1>
-
         <div id="add-word-container">
             <input type="text" id="add-word-input" placeholder="输入一个新单词...">
             <button id="add-word-btn">添加并学习</button>
         </div>
-
         <div class="mode-switcher">
             <button id="mode-learn" class="mode-button active">学习</button>
+            <button id="mode-challenge" class="mode-button">造句大挑战</button>
             <button id="mode-review-known" class="mode-button">已认识列表</button>
             <button id="mode-review-learning" class="mode-button">待复习列表</button>
         </div>
 
+        <!-- 学习视图 -->
         <div id="learn-view">
             <div class="word-card">
                 <div class="word-header">
@@ -128,46 +90,62 @@
                     <p><strong>请尝试用这个单词造一个句子：</strong></p>
                     <textarea id="sentence-input" placeholder="在此输入你的句子..."></textarea>
                 </div>
-                <!-- (新增) 加载动画的HTML元素 -->
                 <div id="loading-spinner" class="hidden"></div>
                 <div id="ai-feedback" class="hidden"></div>
             </div>
-            <!-- ... 按钮区保持不变 ... -->
-            <div id="actions-initial" class="actions">
-                <button id="btn-unknown" class="action-button">不认识</button>
-                <button id="btn-known" class="action-button">认识</button>
+            <div id="actions-initial" class="actions"> <button id="btn-unknown" class="action-button">不认识</button> <button id="btn-known" class="action-button">认识</button> </div>
+            <div id="actions-confirm" class="actions hidden"> <button id="btn-correction" class="action-button">修正:不认识</button> <button id="btn-confirm-known" class="action-button">下一个</button> </div>
+            <div id="actions-sentence" class="actions hidden"> <button id="btn-submit-sentence" class="action-button" style="width: 95%;">提交造句</button> </div>
+            <div id="actions-finish" class="actions hidden"> <button id="btn-finish-learning" class="action-button" style="width: 95%;">完成学习</button> </div>
+        </div>
+
+        <!-- (新增) 造句大挑战视图 -->
+        <div id="challenge-view" class="hidden">
+            <div class="word-card">
+                <div id="challenge-setup">
+                    <h3>造句大挑战</h3>
+                    <p>选择单词数量，用所有出现的单词造一个句子或段落。</p>
+                    <div>
+                        <label for="word-count-selector">单词数量: </label>
+                        <select id="word-count-selector">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3" selected>3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </div>
+                    <div class="actions">
+                        <button id="btn-start-challenge" class="action-button" style="width: 95%;">开始挑战</button>
+                    </div>
+                </div>
+                <div id="challenge-area" class="hidden">
+                    <div id="challenge-words-display"></div>
+                    <div id="challenge-sentence-maker">
+                        <textarea id="challenge-sentence-input" placeholder="用上面的所有单词造句..."></textarea>
+                    </div>
+                    <div id="challenge-loading-spinner" class="hidden"></div>
+                    <div id="challenge-ai-feedback" class="hidden"></div>
+                </div>
             </div>
-            <div id="actions-confirm" class="actions hidden">
-                <button id="btn-correction" class="action-button">修正:不认识</button>
-                <button id="btn-confirm-known" class="action-button">下一个</button>
-            </div>
-            <div id="actions-sentence" class="actions hidden">
-                <button id="btn-submit-sentence" class="action-button" style="width: 95%;">提交造句</button>
-            </div>
-            <div id="actions-finish" class="actions hidden">
-                <button id="btn-finish-learning" class="action-button" style="width: 95%;">完成学习</button>
+            <div id="actions-challenge" class="actions hidden">
+                <button id="btn-submit-challenge" class="action-button" style="width: 45%;">提交批改</button>
+                <button id="btn-next-challenge" class="action-button" style="width: 45%;">下一个挑战</button>
             </div>
         </div>
 
-        <div id="review-known-view" class="review-list-view">
-            <h3>已认识的单词</h3>
-            <ul id="known-list"></ul>
-        </div>
-        <div id="review-learning-view" class="review-list-view">
-            <h3>待复习的单词</h3>
-            <ul id="learning-list"></ul>
-        </div>
+        <div id="review-known-view" class="review-list-view"> <h3>已认识的单词</h3> <ul id="known-list"></ul> </div>
+        <div id="review-learning-view" class="review-list-view"> <h3>待复习的单词</h3> <ul id="learning-list"></ul> </div>
     </main>
 
     <script>
         // --- 1. 配置和常量 ---
         const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
-        const LOCAL_STORAGE_KEY = 'mySmartWordBook';
+        const BASE_LOCAL_STORAGE_KEY = 'mySmartWordBook';
         const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
         const NEW_WORDS_PER_SESSION = 5;
 
         // --- 2. 获取页面元素 ---
-        const loadingSpinner = document.getElementById('loading-spinner'); // (新增)
         const addWordInput = document.getElementById('add-word-input');
         const addWordBtn = document.getElementById('add-word-btn');
         const mainWordEl = document.getElementById('main-word');
@@ -178,6 +156,7 @@
         const definitionEl = document.getElementById('definition');
         const sentenceMakerEl = document.getElementById('sentence-maker');
         const sentenceInputEl = document.getElementById('sentence-input');
+        const loadingSpinner = document.getElementById('loading-spinner');
         const aiFeedbackEl = document.getElementById('ai-feedback');
         const actionsInitial = document.getElementById('actions-initial');
         const actionsConfirm = document.getElementById('actions-confirm');
@@ -190,25 +169,63 @@
         const btnSubmitSentence = document.getElementById('btn-submit-sentence');
         const btnFinishLearning = document.getElementById('btn-finish-learning');
         const modeLearnBtn = document.getElementById('mode-learn');
+        const modeChallengeBtn = document.getElementById('mode-challenge');
         const modeReviewKnownBtn = document.getElementById('mode-review-known');
         const modeReviewLearningBtn = document.getElementById('mode-review-learning');
         const reviewKnownView = document.getElementById('review-known-view');
         const reviewLearningView = document.getElementById('review-learning-view');
         const knownListEl = document.getElementById('known-list');
         const learningListEl = document.getElementById('learning-list');
+        // (新增) 挑战模式元素
+        const challengeView = document.getElementById('challenge-view');
+        const challengeSetup = document.getElementById('challenge-setup');
+        const challengeArea = document.getElementById('challenge-area');
+        const wordCountSelector = document.getElementById('word-count-selector');
+        const btnStartChallenge = document.getElementById('btn-start-challenge');
+        const challengeWordsDisplay = document.getElementById('challenge-words-display');
+        const challengeSentenceInput = document.getElementById('challenge-sentence-input');
+        const challengeLoadingSpinner = document.getElementById('challenge-loading-spinner');
+        const challengeAiFeedback = document.getElementById('challenge-ai-feedback');
+        const actionsChallenge = document.getElementById('actions-challenge');
+        const btnSubmitChallenge = document.getElementById('btn-submit-challenge');
+        const btnNextChallenge = document.getElementById('btn-next-challenge');
 
 
         // --- 3. 状态管理 ---
         let allWords = [];
         let learningQueue = [];
         let currentWord = null;
+        let challengeWords = [];
 
-        function loadState() { return localStorage.getItem(LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) : []; }
-        function saveState() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords)); }
+        function loadState() { return localStorage.getItem(BASE_LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(BASE_LOCAL_STORAGE_KEY)) : []; }
+        function saveState() { localStorage.setItem(BASE_LOCAL_STORAGE_KEY, JSON.stringify(allWords)); }
         
         // --- 4. UI状态机和视图切换 ---
         function updateUiForState(state) { /* ...与上一版相同... */ wordDetailsEl.classList.add('hidden');sentenceMakerEl.classList.add('hidden');aiFeedbackEl.classList.add('hidden');actionsInitial.classList.add('hidden');actionsConfirm.classList.add('hidden');actionsSentence.classList.add('hidden');actionsFinish.classList.add('hidden');switch (state) {case 'reveal_word':actionsInitial.classList.remove('hidden');break;case 'show_answer':wordDetailsEl.classList.remove('hidden');actionsConfirm.classList.remove('hidden');break;case 'make_sentence':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');sentenceInputEl.value = '';actionsSentence.classList.remove('hidden');break;case 'show_feedback':wordDetailsEl.classList.remove('hidden');sentenceMakerEl.classList.remove('hidden');aiFeedbackEl.classList.remove('hidden');actionsFinish.classList.remove('hidden');break;}}
-        function switchView(mode) { /* ...与上一版相同... */ learnView.style.display = 'none';reviewKnownView.style.display = 'none';reviewLearningView.style.display = 'none';modeLearnBtn.classList.remove('active');modeReviewKnownBtn.classList.remove('active');modeReviewLearningBtn.classList.remove('active');if(mode === 'learn') {learnView.style.display = 'block';modeLearnBtn.classList.add('active');} else if (mode === 'review-known') {reviewKnownView.style.display = 'block';modeReviewKnownBtn.classList.add('active');populateReviewList(knownListEl, 'known');} else if (mode === 'review-learning') {reviewLearningView.style.display = 'block';modeReviewLearningBtn.classList.add('active');populateReviewList(learningListEl, 'learning');}}
+        function switchView(mode) {
+            learnView.classList.add('hidden');
+            challengeView.classList.add('hidden');
+            reviewKnownView.classList.add('hidden');
+            reviewLearningView.classList.add('hidden');
+            
+            document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
+
+            if(mode === 'learn') {
+                learnView.classList.remove('hidden');
+                modeLearnBtn.classList.add('active');
+            } else if (mode === 'challenge') {
+                challengeView.classList.remove('hidden');
+                modeChallengeBtn.classList.add('active');
+            } else if (mode === 'review-known') {
+                reviewKnownView.classList.remove('hidden');
+                modeReviewKnownBtn.classList.add('active');
+                populateReviewList(knownListEl, 'known');
+            } else if (mode === 'review-learning') {
+                reviewLearningView.classList.remove('hidden');
+                modeReviewLearningBtn.classList.add('active');
+                populateReviewList(learningListEl, 'learning');
+            }
+        }
         function populateReviewList(listElement, status) { /* ...与上一版相同... */ const words = allWords.filter(w => w.status === status);listElement.innerHTML = '';if (words.length === 0) {listElement.innerHTML = '<li>列表为空</li>';return;}words.sort((a, b) => a.word.localeCompare(b.word));words.forEach(wordObj => {const li = document.createElement('li');const wordSpan = document.createElement('span');let text = wordObj.word;if(status === 'learning' && wordObj.nextReviewDate) {text += ` (下次复习: ${new Date(wordObj.nextReviewDate).toLocaleDateString()})`;}wordSpan.textContent = text;const deleteBtn = document.createElement('button');deleteBtn.textContent = '删除';deleteBtn.className = 'delete-btn';deleteBtn.dataset.word = wordObj.word;deleteBtn.addEventListener('click', handleDeleteWord);li.appendChild(wordSpan);li.appendChild(deleteBtn);listElement.appendChild(li);});}
 
         // --- 5. 核心学习逻辑 ---
@@ -218,10 +235,52 @@
         function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');speakBtn.classList.remove('hidden');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;speakBtn.classList.add('hidden');}}
         async function loadWordDetails() { /* ...与上一版相同... */ pronunciationEl.textContent = '...';definitionEl.textContent = '正在获取中文释义...';try {const response = await fetch('/api/get-definition', {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({ word: currentWord.word })});if (!response.ok) {const errorData = await response.json();throw new Error(errorData.error || '获取释义失败');}const data = await response.json();pronunciationEl.textContent = data.pronunciation || '';definitionEl.textContent = data.definition || '无可用释义';} catch (error) {console.error("加载单词详情失败:", error);definitionEl.textContent = `释义加载失败: ${error.message}`;}}
 
+        // (新增) 开始一次新的造句挑战
+        function startNewChallenge() {
+            const wordCount = parseInt(wordCountSelector.value);
+            const availableWords = allWords.filter(w => w.status !== 'known');
+            if (availableWords.length < wordCount) {
+                alert(`词库中可供挑战的单词不足${wordCount}个！`);
+                return;
+            }
+            
+            shuffleArray(availableWords);
+            challengeWords = availableWords.slice(0, wordCount).map(w => w.word);
+
+            challengeWordsDisplay.innerHTML = '';
+            challengeWords.forEach(word => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'challenge-word-item';
+                
+                const wordSpan = document.createElement('span');
+                wordSpan.textContent = word;
+
+                const checkboxLabel = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.dataset.word = word;
+                
+                checkboxLabel.appendChild(checkbox);
+                checkboxLabel.append(' 不认识');
+
+                itemDiv.appendChild(wordSpan);
+                itemDiv.appendChild(checkboxLabel);
+                challengeWordsDisplay.appendChild(itemDiv);
+            });
+            
+            challengeSetup.classList.add('hidden');
+            challengeArea.classList.remove('hidden');
+            challengeSentenceInput.value = '';
+            challengeAiFeedback.classList.add('hidden');
+            actionsChallenge.classList.remove('hidden');
+            btnSubmitChallenge.classList.remove('hidden');
+            btnNextChallenge.classList.add('hidden');
+        }
+
         // --- 6. 连接真实AI (造句批改) ---
-        async function getRealAiSentenceCheck(word, sentence) {
+        async function getRealAiSentenceCheck(words, sentence) {
             try {
-                const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ word, sentence }),});
+                const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ words, sentence }),});
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);
@@ -246,35 +305,50 @@
         btnUnknown.addEventListener('click', () => { loadWordDetails(); updateUiForState('make_sentence'); });
         btnConfirmKnown.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'known';allWords[wordIndex].srsLevel = -1;saveState();showNextWord(); });
         btnCorrection.addEventListener('click', () => { updateUiForState('make_sentence'); });
+        btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {loadingSpinner.classList.remove('hidden');aiFeedbackEl.classList.add('hidden');let feedback = '';try {feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);} catch (e) {feedback = `❌ 请求AI时发生未知错误。`;} finally {loadingSpinner.classList.add('hidden');aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');}} else {alert("请输入一个句子！");} });
+        btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
         
-        // (已更新) 提交按钮的事件处理逻辑
-        btnSubmitSentence.addEventListener('click', async () => {
-            const userSentence = sentenceInputEl.value.trim();
-            if (userSentence) {
-                // 1. 隐藏旧反馈，显示加载动画
-                aiFeedbackEl.classList.add('hidden');
-                loadingSpinner.classList.remove('hidden');
-                
-                let feedback = '';
-                try {
-                    // 2. 调用AI获取反馈
-                    feedback = await getRealAiSentenceCheck(currentWord.word, userSentence);
-                } catch (e) {
-                    feedback = `❌ 请求AI时发生未知错误。`;
-                } finally {
-                    // 3. 无论成功与否，都隐藏加载动画
-                    loadingSpinner.classList.add('hidden');
-                    // 4. 显示新的反馈
-                    aiFeedbackEl.innerHTML = feedback;
-                    updateUiForState('show_feedback');
+        // (新增) 挑战模式事件处理
+        btnStartChallenge.addEventListener('click', startNewChallenge);
+        btnNextChallenge.addEventListener('click', startNewChallenge);
+        btnSubmitChallenge.addEventListener('click', async () => {
+            const userSentence = challengeSentenceInput.value.trim();
+            if (!userSentence) {
+                alert('请输入您的句子！');
+                return;
+            }
+
+            // 1. 处理标记为“不认识”的单词
+            const unknownWordsCheckboxes = challengeWordsDisplay.querySelectorAll('input[type="checkbox"]:checked');
+            unknownWordsCheckboxes.forEach(checkbox => {
+                const wordToMark = checkbox.dataset.word;
+                const wordIndex = allWords.findIndex(w => w.word === wordToMark);
+                if (wordIndex > -1 && allWords[wordIndex].status !== 'known') {
+                    allWords[wordIndex].status = 'learning';
+                    // 可以在这里设置一个默认的复习计划
                 }
-            } else {
-                alert("请输入一个句子！");
+            });
+            saveState(); // 保存标记结果
+
+            // 2. 显示加载动画并调用AI
+            challengeAiFeedback.classList.add('hidden');
+            challengeLoadingSpinner.classList.remove('hidden');
+            let feedback = '';
+            try {
+                feedback = await getRealAiSentenceCheck(challengeWords, userSentence);
+            } catch (e) {
+                feedback = `❌ 请求AI时发生未知错误。`;
+            } finally {
+                challengeLoadingSpinner.classList.add('hidden');
+                challengeAiFeedback.innerHTML = feedback;
+                challengeAiFeedback.classList.remove('hidden');
+                btnSubmitChallenge.classList.add('hidden');
+                btnNextChallenge.classList.remove('hidden');
             }
         });
 
-        btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
         modeLearnBtn.addEventListener('click', () => switchView('learn'));
+        modeChallengeBtn.addEventListener('click', () => switchView('challenge'));
         modeReviewKnownBtn.addEventListener('click', () => switchView('review-known'));
         modeReviewLearningBtn.addEventListener('click', () => switchView('review-learning'));
 
