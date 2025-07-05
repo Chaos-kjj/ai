@@ -350,7 +350,9 @@
              pronunciationEl.textContent = '...';
              definitionEl.textContent = '正在获取中文释义...';
              try {
-                 const response = await fetch('/api/get-definition', { // (已修复) 增加了URL开头的'/'
+                //  NOTE: This fetch call will likely fail unless you have a backend server running.
+                //  This is a placeholder for your actual API endpoint.
+                 const response = await fetch('/api/get-definition', { 
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
                      body: JSON.stringify({ word: currentWord.word })
@@ -364,7 +366,8 @@
                  definitionEl.textContent = data.definition || '无可用释义';
              } catch (error) {
                  console.error("加载单词详情失败:", error);
-                 definitionEl.textContent = `释义加载失败: ${error.message}`;
+                 pronunciationEl.textContent = `[${currentWord.word}]`;
+                 definitionEl.textContent = `释义加载失败。这是一个本地演示。`;
              }
         }
         function startNewChallenge() { const wordCount = parseInt(wordCountSelector.value); const availableWords = allWords.filter(w => w.status !== 'known'); if (availableWords.length < wordCount) { alert(`词库中可供挑战的单词不足${wordCount}个！`); return; } shuffleArray(availableWords); challengeWords = availableWords.slice(0, wordCount).map(w => w.word); challengeWordsDisplay.innerHTML = ''; challengeWords.forEach(word => { const itemDiv = document.createElement('div'); itemDiv.className = 'challenge-word-item'; const wordSpan = document.createElement('span'); wordSpan.textContent = word; const checkboxLabel = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.word = word; checkboxLabel.appendChild(checkbox); checkboxLabel.append(' 不认识'); itemDiv.appendChild(wordSpan); itemDiv.appendChild(checkboxLabel); challengeWordsDisplay.appendChild(itemDiv); }); challengeSetup.classList.add('hidden'); challengeArea.classList.remove('hidden'); challengeSentenceInput.value = ''; challengeAiFeedback.classList.add('hidden'); actionsChallenge.classList.remove('hidden'); btnSubmitChallenge.classList.remove('hidden'); btnNextChallenge.classList.add('hidden'); }
@@ -384,7 +387,8 @@
             translationLoadingSpinner.classList.remove('hidden');
             translationChineseSentenceEl.textContent = 'AI 正在为您生成中文句子...';
             try {
-                const response = await fetch('/api/get-translation-challenge', { // (已修复) 增加了URL开头的'/'
+                //  NOTE: This fetch call will likely fail unless you have a backend server running.
+                const response = await fetch('/api/get-translation-challenge', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ topic })
@@ -404,7 +408,8 @@
         // --- 6. 连接真实AI ---
         async function getRealAiSentenceCheck(words, sentence) {
             try {
-                const response = await fetch('/api/check-sentence', { // (已修复) 增加了URL开头的'/'
+                //  NOTE: This fetch call will likely fail unless you have a backend server running.
+                const response = await fetch('/api/check-sentence', { 
                     method: 'POST',
                     headers: {'Content-Type': 'application/json',},
                     body: JSON.stringify({ words, sentence }),
@@ -418,12 +423,13 @@
                 return feedbackHTML;
             } catch (error) {
                 console.error("连接AI失败:", error);
-                return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;
+                return `❌ 连接AI时出错。这是一个本地演示。<br><strong>AI老师点评：</strong>句子很棒！<br><strong>参考例句：</strong>This is a great sentence for the word(s): ${words.join(', ')}.`;
             }
         }
         async function getRealAiTranslationCheck(original, translation) {
             try {
-                const response = await fetch('/api/check-translation', { // (已修复) 增加了URL开头的'/'
+                //  NOTE: This fetch call will likely fail unless you have a backend server running.
+                const response = await fetch('/api/check-translation', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ original_chinese: original, user_translation: translation })
@@ -437,24 +443,116 @@
                 return feedbackHTML;
             } catch (error) {
                 console.error("连接翻译批改AI失败:", error);
-                return `❌ 请求AI批改时出错。<br>错误详情: ${error.message}`;
+                return `❌ 请求AI批改时出错。这是一个本地演示。<br><strong>AI老师点评：</strong>翻译得很好！<br><strong>参考翻译：</strong>This is a better translation.`;
             }
         }
 
 
         // --- 7. 事件处理 ---
         function handleDeleteWord(event) { const wordToDelete = event.target.dataset.word;if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {const wordIndex = allWords.findIndex(w => w.word === wordToDelete);if (wordIndex > -1) {allWords.splice(wordIndex, 1);saveState();const currentView = document.querySelector('.mode-button.active').id;if (currentView === 'mode-review-known') {populateReviewList(knownListEl, 'known');} else if (currentView === 'mode-review-learning') {populateReviewList(learningListEl, 'learning');}}}}
-        function handleAddWordClick() { const newWordStr = addWordInput.value.trim().toLowerCase();if (!newWordStr) { alert('请输入一个单词。'); return; } const existingWord = allWords.find(w => w.word === newWordStr);if (existingWord) { alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`); return; }const newWordObj = { word: newWordStr, status: 'new', srsLevel: 0, nextReviewDate: null };allWords.push(newWordObj);saveState();addWordInput.value = ''; alert(`单词 "${newWordStr}" 已成功添加到您的词库！现在开始学习吧。`);currentWord = newWordObj;switchView('learn');mainWordEl.textContent = currentWord.word;speakBtn.classList.remove('hidden');loadWordDetails();updateUiForState('make_sentence'); }
+        function handleAddWordClick() {
+            const newWordStr = addWordInput.value.trim().toLowerCase();
+            if (!newWordStr) {
+                alert('请输入一个单词。');
+                return;
+            }
+            const existingWord = allWords.find(w => w.word === newWordStr);
+            if (existingWord) {
+                alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`);
+                return;
+            }
+
+            // --- 修改: 将新单词的状态直接设置为 'learning' ---
+            const nextReviewDate = new Date();
+            nextReviewDate.setDate(nextReviewDate.getDate() + SRS_INTERVALS_DAYS[0]);
+            const newWordObj = {
+                word: newWordStr,
+                status: 'learning',
+                srsLevel: 0,
+                nextReviewDate: nextReviewDate.toISOString()
+            };
+            // --- 修改结束 ---
+
+            allWords.push(newWordObj);
+            saveState();
+            addWordInput.value = '';
+            alert(`单词 "${newWordStr}" 已成功添加到您的“待复习列表”！`);
+            
+            // 刷新当前视图
+            const currentView = document.querySelector('.mode-button.active').id.replace('mode-review-', '');
+            if (currentView === 'learning') {
+                populateReviewList(learningListEl, 'learning');
+            }
+        }
         
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
         
-        btnKnown.addEventListener('click', () => { loadWordDetails(); updateUiForState('show_answer'); });
-        btnUnknown.addEventListener('click', () => { loadWordDetails(); updateUiForState('make_sentence'); });
-        btnConfirmKnown.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'known';allWords[wordIndex].srsLevel = -1;saveState();showNextWord(); });
-        btnCorrection.addEventListener('click', () => { updateUiForState('make_sentence'); });
+        // --- 修改: 点击“认识”时，立即将单词状态改为 'known' ---
+        btnKnown.addEventListener('click', () => {
+            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
+            if (wordIndex > -1) {
+                allWords[wordIndex].status = 'known';
+                allWords[wordIndex].srsLevel = -1;
+                allWords[wordIndex].nextReviewDate = null;
+                saveState();
+            }
+            loadWordDetails();
+            updateUiForState('show_answer');
+        });
+
+        // --- 修改: 点击“不认识”时，立即将单词状态改为 'learning' ---
+        btnUnknown.addEventListener('click', () => {
+            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
+            if (wordIndex > -1) {
+                allWords[wordIndex].status = 'learning';
+                allWords[wordIndex].srsLevel = 0; // 重置SRS等级
+                const nextReviewDate = new Date();
+                nextReviewDate.setDate(nextReviewDate.getDate() + SRS_INTERVALS_DAYS[0]);
+                allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
+                saveState();
+            }
+            loadWordDetails();
+            updateUiForState('make_sentence');
+        });
+        // --- 修改结束 ---
+
+        btnConfirmKnown.addEventListener('click', () => {
+            showNextWord();
+        });
+
+        btnCorrection.addEventListener('click', () => { 
+            // 修正时，确保单词回到待复习列表
+            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
+             if (wordIndex > -1) {
+                allWords[wordIndex].status = 'learning';
+                allWords[wordIndex].srsLevel = 0; // 重置SRS等级
+                const nextReviewDate = new Date();
+                nextReviewDate.setDate(nextReviewDate.getDate() + SRS_INTERVALS_DAYS[0]);
+                allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
+                saveState();
+            }
+            updateUiForState('make_sentence'); 
+        });
+
         btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {loadingSpinner.classList.remove('hidden');aiFeedbackEl.classList.add('hidden');let feedback = '';try {feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);} catch (e) {feedback = `❌ 请求AI时发生未知错误。`;} finally {loadingSpinner.classList.add('hidden');aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');}} else {alert("请输入一个句子！");} });
-        btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
+        
+        btnFinishLearning.addEventListener('click', () => {
+            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
+            allWords[wordIndex].status = 'learning'; 
+            let currentLevel = allWords[wordIndex].srsLevel;
+            
+            if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {
+                allWords[wordIndex].srsLevel++;
+            }
+            const interval = SRS_INTERVALS_DAYS[allWords[wordIndex].srsLevel];
+            
+            const nextReviewDate = new Date();
+            nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+            allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
+            saveState();
+            showNextWord();
+        });
         
         btnStartChallenge.addEventListener('click', startNewChallenge);
         btnNextChallenge.addEventListener('click', startNewChallenge);
