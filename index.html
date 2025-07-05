@@ -64,7 +64,6 @@
         .challenge-word-item { display: flex; align-items: center; gap: 8px; background: #fff; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; }
         .challenge-word-item label { font-size: 0.8rem; cursor: pointer; }
 
-        /* (新增) 翻译挑战样式 */
         #translation-chinese-sentence {
             font-size: 1.2rem;
             color: #333;
@@ -93,15 +92,66 @@
 
         <!-- 学习视图 -->
         <div id="learn-view">
-            <!-- ... 此处内容保持不变 ... -->
+            <div class="word-card">
+                <div class="word-header">
+                    <h2 id="main-word">正在初始化...</h2>
+                    <button id="speak-btn" class="speak-btn hidden" title="朗读单词">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                    </button>
+                </div>
+                <div id="word-details" class="hidden">
+                    <p id="pronunciation"></p>
+                    <p id="definition"></p>
+                </div>
+                <div id="sentence-maker" class="hidden">
+                    <p><strong>请尝试用这个单词造一个句子：</strong></p>
+                    <textarea id="sentence-input" placeholder="在此输入你的句子..."></textarea>
+                </div>
+                <div id="loading-spinner" class="hidden"></div>
+                <div id="ai-feedback" class="hidden"></div>
+            </div>
+            <div id="actions-initial" class="actions"> <button id="btn-unknown" class="action-button">不认识</button> <button id="btn-known" class="action-button">认识</button> </div>
+            <div id="actions-confirm" class="actions hidden"> <button id="btn-correction" class="action-button">修正:不认识</button> <button id="btn-confirm-known" class="action-button">下一个</button> </div>
+            <div id="actions-sentence" class="actions hidden"> <button id="btn-submit-sentence" class="action-button" style="width: 95%;">提交造句</button> </div>
+            <div id="actions-finish" class="actions hidden"> <button id="btn-finish-learning" class="action-button" style="width: 95%;">完成学习</button> </div>
         </div>
 
         <!-- 造句大挑战视图 -->
         <div id="challenge-view" class="hidden">
-            <!-- ... 此处内容保持不变 ... -->
+             <div class="word-card">
+                <div id="challenge-setup">
+                    <h3>造句大挑战</h3>
+                    <p>选择单词数量，用所有出现的单词造一个句子或段落。</p>
+                    <div>
+                        <label for="word-count-selector">单词数量: </label>
+                        <select id="word-count-selector">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3" selected>3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    </div>
+                    <div class="actions">
+                        <button id="btn-start-challenge" class="action-button" style="width: 95%;">开始挑战</button>
+                    </div>
+                </div>
+                <div id="challenge-area" class="hidden">
+                    <div id="challenge-words-display"></div>
+                    <div id="challenge-sentence-maker">
+                        <textarea id="challenge-sentence-input" placeholder="用上面的所有单词造句..."></textarea>
+                    </div>
+                    <div id="challenge-loading-spinner" class="hidden"></div>
+                    <div id="challenge-ai-feedback" class="hidden"></div>
+                </div>
+            </div>
+            <div id="actions-challenge" class="actions hidden">
+                <button id="btn-submit-challenge" class="action-button" style="width: 45%;">提交批改</button>
+                <button id="btn-next-challenge" class="action-button" style="width: 45%;">下一个挑战</button>
+            </div>
         </div>
 
-        <!-- (新增) 翻译大挑战视图 -->
+        <!-- 翻译大挑战视图 -->
         <div id="translation-challenge-view" class="hidden">
             <div class="word-card">
                 <div id="translation-challenge-setup">
@@ -133,10 +183,54 @@
 
     <script>
         // --- 1. 配置和常量 ---
-        // ... (常量保持不变) ...
+        const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
+        const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心';
+        const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
+        const NEW_WORDS_PER_SESSION = 5;
 
         // --- 2. 获取页面元素 ---
-        // ... (其他元素获取保持不变) ...
+        const addWordInput = document.getElementById('add-word-input');
+        const addWordBtn = document.getElementById('add-word-btn');
+        const mainWordEl = document.getElementById('main-word');
+        const speakBtn = document.getElementById('speak-btn');
+        const learnView = document.getElementById('learn-view');
+        const wordDetailsEl = document.getElementById('word-details');
+        const pronunciationEl = document.getElementById('pronunciation');
+        const definitionEl = document.getElementById('definition');
+        const sentenceMakerEl = document.getElementById('sentence-maker');
+        const sentenceInputEl = document.getElementById('sentence-input');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const aiFeedbackEl = document.getElementById('ai-feedback');
+        const actionsInitial = document.getElementById('actions-initial');
+        const actionsConfirm = document.getElementById('actions-confirm');
+        const actionsSentence = document.getElementById('actions-sentence');
+        const actionsFinish = document.getElementById('actions-finish');
+        const btnUnknown = document.getElementById('btn-unknown');
+        const btnKnown = document.getElementById('btn-known');
+        const btnCorrection = document.getElementById('btn-correction');
+        const btnConfirmKnown = document.getElementById('btn-confirm-known');
+        const btnSubmitSentence = document.getElementById('btn-submit-sentence');
+        const btnFinishLearning = document.getElementById('btn-finish-learning');
+        const modeLearnBtn = document.getElementById('mode-learn');
+        const modeChallengeBtn = document.getElementById('mode-challenge');
+        const modeReviewKnownBtn = document.getElementById('mode-review-known');
+        const modeReviewLearningBtn = document.getElementById('mode-review-learning');
+        const reviewKnownView = document.getElementById('review-known-view');
+        const reviewLearningView = document.getElementById('review-learning-view');
+        const knownListEl = document.getElementById('known-list');
+        const learningListEl = document.getElementById('learning-list');
+        const challengeView = document.getElementById('challenge-view');
+        const challengeSetup = document.getElementById('challenge-setup');
+        const challengeArea = document.getElementById('challenge-area');
+        const wordCountSelector = document.getElementById('word-count-selector');
+        const btnStartChallenge = document.getElementById('btn-start-challenge');
+        const challengeWordsDisplay = document.getElementById('challenge-words-display');
+        const challengeSentenceInput = document.getElementById('challenge-sentence-input');
+        const challengeLoadingSpinner = document.getElementById('challenge-loading-spinner');
+        const challengeAiFeedback = document.getElementById('challenge-ai-feedback');
+        const actionsChallenge = document.getElementById('actions-challenge');
+        const btnSubmitChallenge = document.getElementById('btn-submit-challenge');
+        const btnNextChallenge = document.getElementById('btn-next-challenge');
         const modeTranslationChallengeBtn = document.getElementById('mode-translation-challenge');
         const translationChallengeView = document.getElementById('translation-challenge-view');
         const translationChallengeSetup = document.getElementById('translation-challenge-setup');
@@ -156,11 +250,42 @@
         let learningQueue = [];
         let currentWord = null;
         let challengeWords = [];
-        let currentChineseSentence = ''; // (新增)
+        let currentChineseSentence = '';
 
-        // ... (loadState, saveState 保持不变) ...
+        function loadState() { return localStorage.getItem(LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) : []; }
+        function saveState() { localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords)); }
         
         // --- 4. UI状态机和视图切换 ---
+        function updateUiForState(state) {
+            wordDetailsEl.classList.add('hidden');
+            sentenceMakerEl.classList.add('hidden');
+            aiFeedbackEl.classList.add('hidden');
+            actionsInitial.classList.add('hidden');
+            actionsConfirm.classList.add('hidden');
+            actionsSentence.classList.add('hidden');
+            actionsFinish.classList.add('hidden');
+            switch (state) {
+                case 'reveal_word':
+                    actionsInitial.classList.remove('hidden');
+                    break;
+                case 'show_answer':
+                    wordDetailsEl.classList.remove('hidden');
+                    actionsConfirm.classList.remove('hidden');
+                    break;
+                case 'make_sentence':
+                    wordDetailsEl.classList.remove('hidden');
+                    sentenceMakerEl.classList.remove('hidden');
+                    sentenceInputEl.value = '';
+                    actionsSentence.classList.remove('hidden');
+                    break;
+                case 'show_feedback':
+                    wordDetailsEl.classList.remove('hidden');
+                    sentenceMakerEl.classList.remove('hidden');
+                    aiFeedbackEl.classList.remove('hidden');
+                    actionsFinish.classList.remove('hidden');
+                    break;
+            }
+        }
         function switchView(mode) {
             learnView.classList.add('hidden');
             challengeView.classList.add('hidden');
@@ -189,19 +314,66 @@
                 populateReviewList(learningListEl, 'learning');
             }
         }
-        // ... (其他UI函数保持不变) ...
+        function populateReviewList(listElement, status) {
+            const words = allWords.filter(w => w.status === status);
+            listElement.innerHTML = '';
+            if (words.length === 0) {
+                listElement.innerHTML = '<li>列表为空</li>';
+                return;
+            }
+            words.sort((a, b) => a.word.localeCompare(b.word));
+            words.forEach(wordObj => {
+                const li = document.createElement('li');
+                const wordSpan = document.createElement('span');
+                let text = wordObj.word;
+                if(status === 'learning' && wordObj.nextReviewDate) {
+                    text += ` (下次复习: ${new Date(wordObj.nextReviewDate).toLocaleDateString()})`;
+                }
+                wordSpan.textContent = text;
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '删除';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.dataset.word = wordObj.word;
+                deleteBtn.addEventListener('click', handleDeleteWord);
+                li.appendChild(wordSpan);
+                li.appendChild(deleteBtn);
+                listElement.appendChild(li);
+            });
+        }
 
         // --- 5. 核心学习逻辑 ---
-        // ... (大部分函数保持不变) ...
-
-        // (新增) 开始一次新的翻译挑战
+        function speakWord(text) { if ('speechSynthesis' in window && text) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US'; utterance.rate = 0.9; window.speechSynthesis.speak(utterance); } }
+        function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
+        function buildLearningQueue() { const today = new Date().setHours(0, 0, 0, 0); const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today); const newWords = allWords.filter(word => word.status === 'new'); shuffleArray(wordsToReview); shuffleArray(newWords); learningQueue = [...wordsToReview]; if (wordsToReview.length === 0 && newWords.length > 0) { learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION); } }
+        function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');speakBtn.classList.remove('hidden');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;speakBtn.classList.add('hidden');}}
+        async function loadWordDetails() {
+             pronunciationEl.textContent = '...';
+             definitionEl.textContent = '正在获取中文释义...';
+             try {
+                 const response = await fetch('/api/get-definition', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ word: currentWord.word })
+                 });
+                 if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.error || '获取释义失败');
+                 }
+                 const data = await response.json();
+                 pronunciationEl.textContent = data.pronunciation || '';
+                 definitionEl.textContent = data.definition || '无可用释义';
+             } catch (error) {
+                 console.error("加载单词详情失败:", error);
+                 definitionEl.textContent = `释义加载失败: ${error.message}`;
+             }
+        }
+        function startNewChallenge() { const wordCount = parseInt(wordCountSelector.value); const availableWords = allWords.filter(w => w.status !== 'known'); if (availableWords.length < wordCount) { alert(`词库中可供挑战的单词不足${wordCount}个！`); return; } shuffleArray(availableWords); challengeWords = availableWords.slice(0, wordCount).map(w => w.word); challengeWordsDisplay.innerHTML = ''; challengeWords.forEach(word => { const itemDiv = document.createElement('div'); itemDiv.className = 'challenge-word-item'; const wordSpan = document.createElement('span'); wordSpan.textContent = word; const checkboxLabel = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.word = word; checkboxLabel.appendChild(checkbox); checkboxLabel.append(' 不认识'); itemDiv.appendChild(wordSpan); itemDiv.appendChild(checkboxLabel); challengeWordsDisplay.appendChild(itemDiv); }); challengeSetup.classList.add('hidden'); challengeArea.classList.remove('hidden'); challengeSentenceInput.value = ''; challengeAiFeedback.classList.add('hidden'); actionsChallenge.classList.remove('hidden'); btnSubmitChallenge.classList.remove('hidden'); btnNextChallenge.classList.add('hidden'); }
         async function startNewTranslationChallenge() {
             const topic = translationTopicInput.value.trim();
             if (!topic) {
                 alert('请输入一个中文主题！');
                 return;
             }
-
             translationChallengeSetup.classList.add('hidden');
             translationChallengeArea.classList.remove('hidden');
             translationAiFeedback.classList.add('hidden');
@@ -211,7 +383,6 @@
             translationChallengeInput.value = '';
             translationLoadingSpinner.classList.remove('hidden');
             translationChineseSentenceEl.textContent = 'AI 正在为您生成中文句子...';
-
             try {
                 const response = await fetch('/api/get-translation-challenge', { 
                     method: 'POST',
@@ -223,7 +394,6 @@
                 const data = await response.json();
                 currentChineseSentence = data.chinese_sentence;
                 translationChineseSentenceEl.textContent = currentChineseSentence;
-
             } catch (error) {
                 translationChineseSentenceEl.textContent = `❌ 获取句子失败: ${error.message}`;
             } finally {
@@ -232,9 +402,21 @@
         }
 
         // --- 6. 连接真实AI ---
-        // ... (getRealAiSentenceCheck 保持不变) ...
-
-        // (新增) 调用AI批改翻译
+        async function getRealAiSentenceCheck(words, sentence) {
+            try {
+                const response = await fetch('/api/check-sentence', {method: 'POST',headers: {'Content-Type': 'application/json',},body: JSON.stringify({ words, sentence }),});
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);
+                }
+                const data = await response.json();
+                let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考例句：</strong> ${data.correct_example}</p>`;
+                return feedbackHTML;
+            } catch (error) {
+                console.error("连接AI失败:", error);
+                return `❌ 连接AI时出错。请检查网络或稍后再试。<br>错误详情: ${error.message}`;
+            }
+        }
         async function getRealAiTranslationCheck(original, translation) {
             try {
                 const response = await fetch('/api/check-translation', {
@@ -255,44 +437,96 @@
             }
         }
 
-        // --- 7. 事件处理 ---
-        // ... (大部分事件处理保持不变) ...
 
-        // (新增) 翻译挑战模式事件处理
-        btnStartTranslationChallenge.addEventListener('click', startNewTranslationChallenge);
-        btnNextTranslationChallenge.addEventListener('click', () => {
-            translationChallengeSetup.classList.remove('hidden');
-            translationChallengeArea.classList.add('hidden');
-            actionsTranslationChallenge.classList.add('hidden');
-        });
-        btnSubmitTranslation.addEventListener('click', async () => {
-            const userTranslation = translationChallengeInput.value.trim();
-            if (!userTranslation) {
-                alert('请输入您的翻译！');
+        // --- 7. 事件处理 ---
+        function handleDeleteWord(event) { const wordToDelete = event.target.dataset.word;if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {const wordIndex = allWords.findIndex(w => w.word === wordToDelete);if (wordIndex > -1) {allWords.splice(wordIndex, 1);saveState();const currentView = document.querySelector('.mode-button.active').id;if (currentView === 'mode-review-known') {populateReviewList(knownListEl, 'known');} else if (currentView === 'mode-review-learning') {populateReviewList(learningListEl, 'learning');}}}}
+        function handleAddWordClick() { const newWordStr = addWordInput.value.trim().toLowerCase();if (!newWordStr) { alert('请输入一个单词。'); return; } const existingWord = allWords.find(w => w.word === newWordStr);if (existingWord) { alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`); return; }const newWordObj = { word: newWordStr, status: 'new', srsLevel: 0, nextReviewDate: null };allWords.push(newWordObj);saveState();addWordInput.value = ''; alert(`单词 "${newWordStr}" 已成功添加到您的词库！现在开始学习吧。`);currentWord = newWordObj;switchView('learn');mainWordEl.textContent = currentWord.word;speakBtn.classList.remove('hidden');loadWordDetails();updateUiForState('make_sentence'); }
+        
+        speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
+        addWordBtn.addEventListener('click', handleAddWordClick);
+        
+        btnKnown.addEventListener('click', () => { loadWordDetails(); updateUiForState('show_answer'); });
+        btnUnknown.addEventListener('click', () => { loadWordDetails(); updateUiForState('make_sentence'); });
+        btnConfirmKnown.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'known';allWords[wordIndex].srsLevel = -1;saveState();showNextWord(); });
+        btnCorrection.addEventListener('click', () => { updateUiForState('make_sentence'); });
+        btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {loadingSpinner.classList.remove('hidden');aiFeedbackEl.classList.add('hidden');let feedback = '';try {feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);} catch (e) {feedback = `❌ 请求AI时发生未知错误。`;} finally {loadingSpinner.classList.add('hidden');aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');}} else {alert("请输入一个句子！");} });
+        btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
+        
+        btnStartChallenge.addEventListener('click', startNewChallenge);
+        btnNextChallenge.addEventListener('click', startNewChallenge);
+        btnSubmitChallenge.addEventListener('click', async () => {
+            const userSentence = challengeSentenceInput.value.trim();
+            if (!userSentence) {
+                alert('请输入您的句子！');
                 return;
             }
-            
-            translationAiFeedback.classList.add('hidden');
-            translationLoadingSpinner.classList.remove('hidden');
+
+            const unknownWordsCheckboxes = challengeWordsDisplay.querySelectorAll('input[type="checkbox"]:checked');
+            unknownWordsCheckboxes.forEach(checkbox => {
+                const wordToMark = checkbox.dataset.word;
+                const wordIndex = allWords.findIndex(w => w.word === wordToMark);
+                if (wordIndex > -1 && allWords[wordIndex].status !== 'known') {
+                    const wordObj = allWords[wordIndex];
+                    wordObj.status = 'learning';
+                    wordObj.srsLevel = 0;
+                    const interval = SRS_INTERVALS_DAYS[wordObj.srsLevel];
+                    const nextReviewDate = new Date();
+                    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+                    wordObj.nextReviewDate = nextReviewDate.toISOString();
+                }
+            });
+            saveState();
+
+            challengeAiFeedback.classList.add('hidden');
+            challengeLoadingSpinner.classList.remove('hidden');
             let feedback = '';
             try {
-                feedback = await getRealAiTranslationCheck(currentChineseSentence, userTranslation);
+                feedback = await getRealAiSentenceCheck(challengeWords, userSentence);
             } catch (e) {
                 feedback = `❌ 请求AI时发生未知错误。`;
             } finally {
-                translationLoadingSpinner.classList.add('hidden');
-                translationAiFeedback.innerHTML = feedback;
-                translationAiFeedback.classList.remove('hidden');
-                btnSubmitTranslation.classList.add('hidden');
-                btnNextTranslationChallenge.classList.remove('hidden');
+                challengeLoadingSpinner.classList.add('hidden');
+                challengeAiFeedback.innerHTML = feedback;
+                challengeAiFeedback.classList.remove('hidden');
+                btnSubmitChallenge.classList.add('hidden');
+                btnNextChallenge.classList.remove('hidden');
             }
         });
 
+        modeLearnBtn.addEventListener('click', () => switchView('learn'));
+        modeChallengeBtn.addEventListener('click', () => switchView('challenge'));
         modeTranslationChallengeBtn.addEventListener('click', () => switchView('translation-challenge'));
-        // ... (其他模式切换按钮事件处理保持不变) ...
+        modeReviewKnownBtn.addEventListener('click', () => switchView('review-known'));
+        modeReviewLearningBtn.addEventListener('click', () => switchView('review-learning'));
 
         // --- 8. 初始化应用 ---
-        // ... (initializeApp 保持不变) ...
-    </script>
-</body>
-</html>
+        // (已修复) 使用您提供的简单、直接、有效的初始化逻辑
+        async function initializeApp() {
+            allWords = loadState();
+            if (allWords.length === 0) {
+                mainWordEl.textContent = "首次加载，正在同步云端词库...";
+                try {
+                    const response = await fetch(WORD_LIST_URL);
+                    if (!response.ok) throw new Error('无法获取云端词库');
+                    const wordList = await response.json();
+                    
+                    let initialWords = [];
+                    if (Array.isArray(wordList)) {
+                       initialWords = wordList;
+                    } else {
+                       const firstListName = Object.keys(wordList)[0];
+                       initialWords = firstListName ? wordList[firstListName] : [];
+                    }
+
+                    if (initialWords.length === 0) throw new Error('云端词库为空或格式不正确');
+
+                    allWords = initialWords.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
+                    saveState();
+                } catch (error) {
+                    learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
+                    return;
+                }
+            }
+            switchView('learn');
+            showNextWord();
+        }
