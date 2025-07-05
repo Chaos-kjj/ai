@@ -10,49 +10,40 @@ module.exports = async (req, res) => {
   }
 
   const apiKey = process.env.GOOGLE_API_KEY;
-  const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
+  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const wordListString = Array.isArray(words) ? words.join(', ') : words;
 
   const payload = {
-    model: "deepseek-ai/deepseek-v2-lite",
-    messages: [
-      {
-        role: "system",
-        content: "你是一个友善且专业的英语老师。你的任务是判断用户提供的句子是否正确、流畅地使用了所有给定的单词，并提供反馈。你的回答必须严格遵循JSON格式，所有内容都必须使用中文。重要：如果生成的文本中包含任何双引号(\")，你必须用反斜杠进行转义，写作 \\\"。"
-      },
-      {
-        role: "user",
-        content: `请判断句子 "${sentence}" 是否正确地使用了以下所有单词: "${wordListString}"。返回的JSON格式必须是：{"is_correct": boolean, "explanation": "简短解释，说明用法是否地道，或者句子有什么问题", "correct_example": "提供一个使用了所有这些单词的正确、地道的例句"}`
-      }
-    ],
-    response_format: { "type": "json_object" }
+    contents: [{
+      parts: [{
+        text: `你是一个友善且专业的英语老师。请判断句子 "${sentence}" 是否正确地使用了以下所有单词: "${wordListString}"。你的回答必须严格遵循以下JSON格式，所有内容都必须使用中文，不要包含任何额外的解释或markdown标记：
+        {
+          "is_correct": boolean,
+          "explanation": "简短解释，说明用法是否地道，或者句子有什么问题",
+          "correct_example": "提供一个使用了所有这些单词的正确、地道的例句"
+        }`
+      }]
+    }],
+    generationConfig: {
+      response_mime_type: "application/json",
+    }
   };
 
   try {
     const response = await fetch(apiUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`SiliconCloud API error: ${response.status} ${errorBody}`);
+      throw new Error(`Gemini API error: ${response.status} ${errorBody}`);
     }
 
     const data = await response.json();
-    const content = data.choices[0].message.content;
-    
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("AI response did not contain a valid JSON object.");
-    }
-    const jsonString = jsonMatch[0];
-    const feedbackJson = JSON.parse(jsonString);
-
+    // Gemini API with json response_mime_type returns the JSON directly in the text part.
+    const feedbackJson = JSON.parse(data.candidates[0].content.parts[0].text);
     res.status(200).json(feedbackJson);
 
   } catch (error) {
