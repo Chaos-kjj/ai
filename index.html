@@ -209,13 +209,6 @@
         }
         function saveState() {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords));
-            //  每次保存状态时，都刷新一下可能打开的列表视图
-            if (modeReviewKnownBtn.classList.contains('active')) {
-                 populateReviewList(knownListEl, 'known');
-            }
-            if (modeReviewLearningBtn.classList.contains('active')) {
-                 populateReviewList(learningListEl, 'learning');
-            }
         }
         
         // --- 4. UI状态机和视图切换 ---
@@ -273,98 +266,20 @@
 
         // --- 7. 事件处理 ---
         function handleDeleteWord(event) { /* ...与上一版相同... */ const wordToDelete = event.target.dataset.word;if (wordToDelete && confirm(`确定要从词库中永久删除单词 "${wordToDelete}" 吗？此操作不可撤销。`)) {const wordIndex = allWords.findIndex(w => w.word === wordToDelete);if (wordIndex > -1) {allWords.splice(wordIndex, 1);saveState();const currentView = document.querySelector('.mode-button.active').id;if (currentView === 'mode-review-known') {populateReviewList(knownListEl, 'known');} else if (currentView === 'mode-review-learning') {populateReviewList(learningListEl, 'learning');}}}}
-        
-        /**
-         * 修改点: 添加新词时直接加入“待复习列表”
-         */
-        function handleAddWordClick() {
-            const newWordStr = addWordInput.value.trim().toLowerCase();
-            if (!newWordStr) {
-                alert('请输入一个单词。');
-                return;
-            }
-            if (allWords.find(w => w.word === newWordStr)) {
-                alert(`单词 "${newWordStr}" 已存在于您的词库中。`);
-                return;
-            }
-
-            // 创建新单词对象，状态直接设为 'learning'，并设置初次复习日期
-            const newWordObj = {
-                word: newWordStr,
-                status: 'learning', // 功能3: 直接加入待复习列表
-                srsLevel: 0,      // 从0级开始
-                nextReviewDate: (() => {
-                    const nextDate = new Date();
-                    nextDate.setDate(nextDate.getDate() + SRS_INTERVALS_DAYS[0]); // 安排在1天后复习
-                    return nextDate.toISOString();
-                })()
-            };
-
-            allWords.push(newWordObj);
-            saveState(); // 保存状态并刷新列表
-            addWordInput.value = '';
-            alert(`单词 "${newWordStr}" 已成功添加至“待复习列表”！`);
-
-            // 添加后立即开始学习这个新词
-            currentWord = newWordObj;
-            switchView('learn');
-            mainWordEl.textContent = currentWord.word;
-            speakBtn.classList.remove('hidden');
-            loadWordDetails();
-            updateUiForState('make_sentence'); // 直接进入造句环节
-        }
+        function handleAddWordClick() { /* ...与上一版相同... */ const newWordStr = addWordInput.value.trim().toLowerCase();if (!newWordStr) { alert('请输入一个单词。'); return; } const existingWord = allWords.find(w => w.word === newWordStr);if (existingWord) { alert(`单词 "${newWordStr}" 已存在于您的词库中，状态为：${existingWord.status}。`); return; }const newWordObj = { word: newWordStr, status: 'new', srsLevel: 0, nextReviewDate: null };allWords.push(newWordObj);saveState();addWordInput.value = ''; alert(`单词 "${newWordStr}" 已成功添加到您的词库！现在开始学习吧。`);currentWord = newWordObj;switchView('learn');mainWordEl.textContent = currentWord.word;speakBtn.classList.remove('hidden');loadWordDetails();updateUiForState('make_sentence'); }
         
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
         
         btnKnown.addEventListener('click', () => { loadWordDetails(); updateUiForState('show_answer'); });
         btnUnknown.addEventListener('click', () => { loadWordDetails(); updateUiForState('make_sentence'); });
-
-        /**
-         * 修改点: 确认“认识”后，将单词移入“已认识列表”
-         */
-        btnConfirmKnown.addEventListener('click', () => {
-            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
-            if (wordIndex > -1) {
-                 // 功能1: 将单词状态更新为 'known'
-                allWords[wordIndex].status = 'known';
-                allWords[wordIndex].srsLevel = -1; // -1 表示已掌握，不再参与SRS
-                allWords[wordIndex].nextReviewDate = null;
-            }
-            saveState(); // 保存状态并刷新列表
-            showNextWord();
-        });
-
+        btnConfirmKnown.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'known';allWords[wordIndex].srsLevel = -1;saveState();showNextWord(); });
         btnCorrection.addEventListener('click', () => { updateUiForState('make_sentence'); });
-        
         btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {loadingSpinner.classList.remove('hidden');aiFeedbackEl.classList.add('hidden');let feedback = '';try {feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);} catch (e) {feedback = `❌ 请求AI时发生未知错误。`;} finally {loadingSpinner.classList.add('hidden');aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');}} else {alert("请输入一个句子！");} });
-        
-        /**
-         * 修改点: 点击“不认识”并完成学习后，将单词移入“待复习列表”
-         */
-        btnFinishLearning.addEventListener('click', () => {
-            const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
-            if (wordIndex > -1) {
-                 // 功能2: 将单词状态更新为 'learning' 并重置复习计划
-                const wordObj = allWords[wordIndex];
-                wordObj.status = 'learning';
-                // 重置SRS等级为0，开始新的复习周期
-                wordObj.srsLevel = 0; 
-                const interval = SRS_INTERVALS_DAYS[wordObj.srsLevel];
-                const nextReviewDate = new Date();
-                nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-                wordObj.nextReviewDate = nextReviewDate.toISOString();
-            }
-            saveState(); // 保存状态并刷新列表
-            showNextWord();
-        });
+        btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
         
         btnStartChallenge.addEventListener('click', startNewChallenge);
         btnNextChallenge.addEventListener('click', startNewChallenge);
-        
-        /**
-         * 修改点: 在“造句大挑战”中，将不认识的词加入“待复习列表”
-         */
         btnSubmitChallenge.addEventListener('click', async () => {
             const userSentence = challengeSentenceInput.value.trim();
             if (!userSentence) {
@@ -372,25 +287,21 @@
                 return;
             }
 
-            // 功能4: 处理标记为“不认识”的单词
             const unknownWordsCheckboxes = challengeWordsDisplay.querySelectorAll('input[type="checkbox"]:checked');
             unknownWordsCheckboxes.forEach(checkbox => {
                 const wordToMark = checkbox.dataset.word;
                 const wordIndex = allWords.findIndex(w => w.word === wordToMark);
-                if (wordIndex > -1) {
+                if (wordIndex > -1 && allWords[wordIndex].status !== 'known') {
                     const wordObj = allWords[wordIndex];
-                    // 无论之前是什么状态（只要不是known），都设为 learning 并重置进度
-                    if (wordObj.status !== 'known') {
-                        wordObj.status = 'learning';
-                        wordObj.srsLevel = 0; // 重置复习进度
-                        const interval = SRS_INTERVALS_DAYS[wordObj.srsLevel];
-                        const nextReviewDate = new Date();
-                        nextReviewDate.setDate(nextReviewDate.getDate() + interval);
-                        wordObj.nextReviewDate = nextReviewDate.toISOString();
-                    }
+                    wordObj.status = 'learning';
+                    wordObj.srsLevel = 0;
+                    const interval = SRS_INTERVALS_DAYS[wordObj.srsLevel];
+                    const nextReviewDate = new Date();
+                    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+                    wordObj.nextReviewDate = nextReviewDate.toISOString();
                 }
             });
-            saveState(); // 保存所有被标记单词的状态并刷新列表
+            saveState();
 
             challengeAiFeedback.classList.add('hidden');
             challengeLoadingSpinner.classList.remove('hidden');
@@ -414,53 +325,33 @@
         modeReviewLearningBtn.addEventListener('click', () => switchView('review-learning'));
 
         // --- 8. 初始化应用 ---
+        // (已修复) 使用您提供的简单、直接、有效的初始化逻辑
         async function initializeApp() {
-            try {
-                // 1. 先从云端获取最新的主词库
-                const response = await fetch(WORD_LIST_URL);
-                if (!response.ok) throw new Error('无法获取云端词库');
-                const cloudWordList = await response.json();
-                let initialWords = [];
-                if (Array.isArray(cloudWordList)) {
-                    initialWords = cloudWordList;
-                } else {
-                    const firstListName = Object.keys(cloudWordList)[0];
-                    initialWords = firstListName ? cloudWordList[firstListName] : [];
-                }
-
-                // 2. 加载本地的学习进度
-                const localWords = loadState();
-                const localWordMap = new Map(localWords.map(wordObj => [wordObj.word, wordObj]));
-
-                // 3. 合并云端词库和本地进度
-                const syncedWords = initialWords.map(word => {
-                    if (localWordMap.has(word)) {
-                        return localWordMap.get(word); // 如果本地有进度，使用本地的
+            allWords = loadState();
+            if (allWords.length === 0) {
+                mainWordEl.textContent = "首次加载，正在同步云端词库...";
+                try {
+                    const response = await fetch(WORD_LIST_URL);
+                    if (!response.ok) throw new Error('无法获取云端词库');
+                    const wordList = await response.json();
+                    
+                    let initialWords = [];
+                    if (Array.isArray(wordList)) {
+                       initialWords = wordList;
+                    } else {
+                       const firstListName = Object.keys(wordList)[0];
+                       initialWords = firstListName ? wordList[firstListName] : [];
                     }
-                    // 如果本地没有，说明是云端新增的词，创建新对象
-                    return { word: word, status: 'new', srsLevel: 0, nextReviewDate: null };
-                });
 
-                // 4. 将用户手动添加的、但云端没有的词也加回来
-                localWords.forEach(localWordObj => {
-                    if (!syncedWords.some(w => w.word === localWordObj.word)) {
-                        syncedWords.push(localWordObj);
-                    }
-                });
+                    if (initialWords.length === 0) throw new Error('云端词库为空或格式不正确');
 
-                allWords = syncedWords;
-                saveState();
-
-            } catch (error) {
-                // 如果网络失败，尝试只加载本地数据
-                console.warn("无法从云端同步词库，将只加载本地进度。", error);
-                allWords = loadState();
-                if (allWords.length === 0) {
+                    allWords = initialWords.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
+                    saveState();
+                } catch (error) {
                     learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
                     return;
                 }
             }
-            
             switchView('learn');
             showNextWord();
         }
