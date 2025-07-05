@@ -26,7 +26,6 @@ module.exports = async (req, res) => {
         content: `请判断句子 "${sentence}" 是否正确地使用了单词 "${word}"。返回的JSON格式必须是：{"is_correct": boolean, "explanation": "简短解释", "correct_example": "提供一两个正确例句"}`
       }
     ],
-    // 强制要求AI返回JSON格式
     response_format: { "type": "json_object" }
   };
 
@@ -47,7 +46,19 @@ module.exports = async (req, res) => {
     }
 
     const data = await response.json();
-    const feedbackJson = JSON.parse(data.choices[0].message.content);
+    const content = data.choices[0].message.content;
+    let feedbackJson;
+
+    // (已更新) 更健壮的JSON解析逻辑
+    if (typeof content === 'string') {
+        try {
+            feedbackJson = JSON.parse(content);
+        } catch (e) {
+            throw new Error(`Failed to parse JSON from AI response: ${content}`);
+        }
+    } else {
+        throw new Error("Unexpected AI response format. Expected a JSON string.");
+    }
 
     res.status(200).json(feedbackJson);
 
@@ -56,3 +67,4 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Failed to get feedback from AI.', details: error.message });
   }
 };
+

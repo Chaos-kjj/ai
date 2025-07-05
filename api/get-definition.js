@@ -11,11 +11,11 @@ module.exports = async (req, res) => {
   }
 
   // 2. 准备向 SiliconCloud API 发送的请求
-  const apiKey = process.env.GOOGLE_API_KEY; // 我们继续使用这个环境变量名，但它现在存的是SiliconCloud的密钥
+  const apiKey = process.env.GOOGLE_API_KEY; // 我们继续使用这个环境变量名
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "alibaba/Qwen2-7B-Instruct", // 使用通义千问模型
+    model: "alibaba/Qwen2-7B-Instruct",
     messages: [
       {
         role: "system",
@@ -26,8 +26,7 @@ module.exports = async (req, res) => {
         content: `请提供单词 "${word}" 的信息。返回的JSON格式必须是：{"pronunciation": "这里是音标", "definition": "这里是中文释义"}`
       }
     ],
-    // 强制要求AI返回JSON格式，这非常重要！
-    response_format: { "type": "json_object" } 
+    response_format: { "type": "json_object" }
   };
 
   // 3. 发送请求并处理响应
@@ -47,8 +46,19 @@ module.exports = async (req, res) => {
     }
 
     const data = await response.json();
-    // 从AI返回的复杂结构中提取出我们需要的内容
-    const definitionJson = JSON.parse(data.choices[0].message.content);
+    const content = data.choices[0].message.content;
+    let definitionJson;
+
+    // (已更新) 更健壮的JSON解析逻辑
+    if (typeof content === 'string') {
+        try {
+            definitionJson = JSON.parse(content);
+        } catch (e) {
+            throw new Error(`Failed to parse JSON from AI response: ${content}`);
+        }
+    } else {
+        throw new Error("Unexpected AI response format. Expected a JSON string.");
+    }
 
     res.status(200).json(definitionJson);
 
@@ -57,3 +67,4 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Failed to get definition from AI.', details: error.message });
   }
 };
+
