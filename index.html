@@ -42,7 +42,15 @@
         #sentence-input, #challenge-sentence-input { width: 100%; min-height: 80px; padding: 0.5rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
         #ai-feedback, #challenge-ai-feedback { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; text-align: left;}
 
-        #loading-spinner { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
+        #loading-spinner, #challenge-loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+        }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
         .actions { margin-top: 2rem; display: flex; justify-content: space-around; }
@@ -51,7 +59,6 @@
         #btn-known, #btn-confirm-known { background-color: #28a745; color: white; }
         #btn-correction, #btn-submit-sentence, #btn-finish-learning, #btn-start-challenge, #btn-submit-challenge, #btn-next-challenge { background-color: #007bff; color: white; }
         
-        /* (新增) 挑战模式特定样式 */
         #challenge-setup { padding: 2rem; }
         #challenge-words-display { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 1.5rem; }
         .challenge-word-item { display: flex; align-items: center; gap: 8px; background: #fff; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; }
@@ -99,7 +106,7 @@
             <div id="actions-finish" class="actions hidden"> <button id="btn-finish-learning" class="action-button" style="width: 95%;">完成学习</button> </div>
         </div>
 
-        <!-- (新增) 造句大挑战视图 -->
+        <!-- 造句大挑战视图 -->
         <div id="challenge-view" class="hidden">
             <div class="word-card">
                 <div id="challenge-setup">
@@ -176,7 +183,6 @@
         const reviewLearningView = document.getElementById('review-learning-view');
         const knownListEl = document.getElementById('known-list');
         const learningListEl = document.getElementById('learning-list');
-        // (新增) 挑战模式元素
         const challengeView = document.getElementById('challenge-view');
         const challengeSetup = document.getElementById('challenge-setup');
         const challengeArea = document.getElementById('challenge-area');
@@ -234,48 +240,7 @@
         function buildLearningQueue() { /* ...与上一版相同... */ const today = new Date().setHours(0, 0, 0, 0); const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today); const newWords = allWords.filter(word => word.status === 'new'); shuffleArray(wordsToReview); shuffleArray(newWords); learningQueue = [...wordsToReview]; if (wordsToReview.length === 0 && newWords.length > 0) { learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION); } }
         function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');speakBtn.classList.remove('hidden');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;speakBtn.classList.add('hidden');}}
         async function loadWordDetails() { /* ...与上一版相同... */ pronunciationEl.textContent = '...';definitionEl.textContent = '正在获取中文释义...';try {const response = await fetch('/api/get-definition', {method: 'POST',headers: { 'Content-Type': 'application/json' },body: JSON.stringify({ word: currentWord.word })});if (!response.ok) {const errorData = await response.json();throw new Error(errorData.error || '获取释义失败');}const data = await response.json();pronunciationEl.textContent = data.pronunciation || '';definitionEl.textContent = data.definition || '无可用释义';} catch (error) {console.error("加载单词详情失败:", error);definitionEl.textContent = `释义加载失败: ${error.message}`;}}
-
-        // (新增) 开始一次新的造句挑战
-        function startNewChallenge() {
-            const wordCount = parseInt(wordCountSelector.value);
-            const availableWords = allWords.filter(w => w.status !== 'known');
-            if (availableWords.length < wordCount) {
-                alert(`词库中可供挑战的单词不足${wordCount}个！`);
-                return;
-            }
-            
-            shuffleArray(availableWords);
-            challengeWords = availableWords.slice(0, wordCount).map(w => w.word);
-
-            challengeWordsDisplay.innerHTML = '';
-            challengeWords.forEach(word => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'challenge-word-item';
-                
-                const wordSpan = document.createElement('span');
-                wordSpan.textContent = word;
-
-                const checkboxLabel = document.createElement('label');
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.dataset.word = word;
-                
-                checkboxLabel.appendChild(checkbox);
-                checkboxLabel.append(' 不认识');
-
-                itemDiv.appendChild(wordSpan);
-                itemDiv.appendChild(checkboxLabel);
-                challengeWordsDisplay.appendChild(itemDiv);
-            });
-            
-            challengeSetup.classList.add('hidden');
-            challengeArea.classList.remove('hidden');
-            challengeSentenceInput.value = '';
-            challengeAiFeedback.classList.add('hidden');
-            actionsChallenge.classList.remove('hidden');
-            btnSubmitChallenge.classList.remove('hidden');
-            btnNextChallenge.classList.add('hidden');
-        }
+        function startNewChallenge() { const wordCount = parseInt(wordCountSelector.value); const availableWords = allWords.filter(w => w.status !== 'known'); if (availableWords.length < wordCount) { alert(`词库中可供挑战的单词不足${wordCount}个！`); return; } shuffleArray(availableWords); challengeWords = availableWords.slice(0, wordCount).map(w => w.word); challengeWordsDisplay.innerHTML = ''; challengeWords.forEach(word => { const itemDiv = document.createElement('div'); itemDiv.className = 'challenge-word-item'; const wordSpan = document.createElement('span'); wordSpan.textContent = word; const checkboxLabel = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.word = word; checkboxLabel.appendChild(checkbox); checkboxLabel.append(' 不认识'); itemDiv.appendChild(wordSpan); itemDiv.appendChild(checkboxLabel); challengeWordsDisplay.appendChild(itemDiv); }); challengeSetup.classList.add('hidden'); challengeArea.classList.remove('hidden'); challengeSentenceInput.value = ''; challengeAiFeedback.classList.add('hidden'); actionsChallenge.classList.remove('hidden'); btnSubmitChallenge.classList.remove('hidden'); btnNextChallenge.classList.add('hidden'); }
 
         // --- 6. 连接真实AI (造句批改) ---
         async function getRealAiSentenceCheck(words, sentence) {
@@ -308,7 +273,6 @@
         btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {loadingSpinner.classList.remove('hidden');aiFeedbackEl.classList.add('hidden');let feedback = '';try {feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);} catch (e) {feedback = `❌ 请求AI时发生未知错误。`;} finally {loadingSpinner.classList.add('hidden');aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');}} else {alert("请输入一个句子！");} });
         btnFinishLearning.addEventListener('click', () => { const wordIndex = allWords.findIndex(w => w.word === currentWord.word);allWords[wordIndex].status = 'learning';let currentLevel = allWords[wordIndex].srsLevel;if (currentLevel < SRS_INTERVALS_DAYS.length - 1) {allWords[wordIndex].srsLevel++;}const interval = SRS_INTERVALS_DAYS[currentLevel];const nextReviewDate = new Date();nextReviewDate.setDate(nextReviewDate.getDate() + interval);allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();saveState();showNextWord(); });
         
-        // (新增) 挑战模式事件处理
         btnStartChallenge.addEventListener('click', startNewChallenge);
         btnNextChallenge.addEventListener('click', startNewChallenge);
         btnSubmitChallenge.addEventListener('click', async () => {
@@ -318,19 +282,23 @@
                 return;
             }
 
-            // 1. 处理标记为“不认识”的单词
             const unknownWordsCheckboxes = challengeWordsDisplay.querySelectorAll('input[type="checkbox"]:checked');
             unknownWordsCheckboxes.forEach(checkbox => {
                 const wordToMark = checkbox.dataset.word;
                 const wordIndex = allWords.findIndex(w => w.word === wordToMark);
                 if (wordIndex > -1 && allWords[wordIndex].status !== 'known') {
-                    allWords[wordIndex].status = 'learning';
-                    // 可以在这里设置一个默认的复习计划
+                    const wordObj = allWords[wordIndex];
+                    wordObj.status = 'learning';
+                    // (已修复) 为标记不认识的单词设置完整的复习计划
+                    wordObj.srsLevel = 0;
+                    const interval = SRS_INTERVALS_DAYS[wordObj.srsLevel];
+                    const nextReviewDate = new Date();
+                    nextReviewDate.setDate(nextReviewDate.getDate() + interval);
+                    wordObj.nextReviewDate = nextReviewDate.toISOString();
                 }
             });
-            saveState(); // 保存标记结果
+            saveState();
 
-            // 2. 显示加载动画并调用AI
             challengeAiFeedback.classList.add('hidden');
             challengeLoadingSpinner.classList.remove('hidden');
             let feedback = '';
@@ -354,14 +322,33 @@
 
         // --- 8. 初始化应用 ---
         async function initializeApp() {
-             allWords = loadState();
+            let loadedWords = loadState();
+
+            // (已修复) 增加数据迁移逻辑，处理旧格式数据
+            if (loadedWords.length > 0 && typeof loadedWords[0] === 'string') {
+                allWords = loadedWords.map(word => ({
+                    word: word,
+                    status: 'new',
+                    srsLevel: 0,
+                    nextReviewDate: null
+                }));
+                saveState();
+            } else {
+                allWords = loadedWords;
+            }
+
              if (allWords.length === 0) {
                  try {
                      const response = await fetch(WORD_LIST_URL);
                      if (!response.ok) throw new Error('无法获取云端词库');
                      const wordList = await response.json();
-                     allWords = wordList.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
-                     saveState();
+                     // 确保 fetched data is an array
+                     if (Array.isArray(wordList)) {
+                        allWords = wordList.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
+                        saveState();
+                     } else {
+                        throw new Error('云端词库格式不正确');
+                     }
                  } catch (error) {
                      learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
                      return;
