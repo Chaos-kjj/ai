@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "alibaba/Qwen2-7B-Instruct",
+    model: "deepseek-ai/deepseek-v2-lite", // (已更新) 更换为支持的模型
     messages: [
       {
         role: "system",
@@ -49,7 +49,7 @@ module.exports = async (req, res) => {
     const content = data.choices[0].message.content;
     let feedbackJson;
 
-    // (已更新) 更健壮的JSON解析逻辑
+    // 更健壮的JSON解析逻辑
     if (typeof content === 'string') {
         try {
             feedbackJson = JSON.parse(content);
@@ -67,4 +67,3 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Failed to get feedback from AI.', details: error.message });
   }
 };
-
