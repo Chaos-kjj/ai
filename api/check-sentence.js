@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "deepseek-ai/deepseek-v2-lite", // (已更新) 更换为支持的模型
+    model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B", // (已更新) 更换为新指定的模型
     messages: [
       {
         role: "system",
