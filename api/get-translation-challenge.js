@@ -15,15 +15,24 @@ module.exports = async (req, res) => {
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "Qwen/Qwen3-8B", // (已更新) 更换为您指定的Qwen模型
+    model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B", // 使用您指定的模型
     messages: [
       {
         role: "system",
-        content: "你是一个中文作家。请根据用户提供的主题，生成一个优美的、长度在20到30个汉字之间的中文句子。你的回答必须严格遵循JSON格式，只包含一个键'chinese_sentence'，不要有任何额外的解释或markdown标记。"
+        content: "你是一个遵循指令的AI助手。你的任务是根据用户给定的主题，生成一个符合要求的中文句子，并以指定的JSON格式返回。"
       },
       {
         role: "user",
-        content: `主题是：“${topic}”。`
+        content: `任务：生成一个与主题“${topic}”相关的中文句子。
+        要求：
+        1. 句子必须优美且有一定意境。
+        2. 句子长度严格控制在20到30个汉字之间。
+        3. 你的输出必须是严格的JSON格式，只包含一个键 "chinese_sentence"。
+        
+        示例输入: "雨后的彩虹"
+        示例输出: {"chinese_sentence": "雨后初晴，一道绚丽的彩虹如梦之桥横跨天际。"}
+
+        现在，请为主题“${topic}”生成句子。`
       }
     ],
     response_format: { "type": "json_object" }

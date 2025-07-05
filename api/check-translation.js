@@ -1,4 +1,4 @@
-/// api/check-translation.js
+// api/check-translation.js
 
 module.exports = async (req, res) => {
   // 1. 检查请求方法和内容
@@ -15,15 +15,22 @@ module.exports = async (req, res) => {
   const apiUrl = "https://api.siliconflow.cn/v1/chat/completions";
 
   const payload = {
-    model: "Qwen/Qwen3-8B", // (已更新) 更换为您指定的Qwen模型
+    model: "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B", // 使用您指定的模型
     messages: [
       {
         role: "system",
-        content: "你是一位专业的英汉翻译老师。请评估用户的英文翻译是否准确、地道地表达了中文原文的意思。你的回答必须严格遵循JSON格式，所有内容都必须使用中文。"
+        content: "你是一位专业的英汉翻译老师。你的任务是评估用户的英文翻译，并以指定的JSON格式返回结构化的反馈。所有内容都必须使用中文。"
       },
       {
         role: "user",
-        content: `中文原文是：“${original_chinese}”。用户的英文翻译是：“${user_translation}”。请返回JSON格式的批改结果：{"is_correct": boolean, "explanation": "对用户的翻译进行点评，指出优点和可以改进的地方。", "better_translation": "提供一个或多个更优美、更地道的参考翻译。"}`
+        content: `任务：评估英文翻译。
+        中文原文：“${original_chinese}”
+        用户翻译：“${user_translation}”
+        
+        请返回JSON格式的批改结果，包含以下三个键：
+        1. "is_correct": (boolean) 用户的翻译在语法和核心意思上是否基本正确。
+        2. "explanation": (string) 对用户的翻译进行点评，指出优点和可以改进的地方。
+        3. "better_translation": (string) 提供一个或多个更优美、更地道的参考翻译。`
       }
     ],
     response_format: { "type": "json_object" }
@@ -62,4 +69,3 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: 'Failed to get feedback from AI.', details: error.message });
   }
 };
-
