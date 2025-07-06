@@ -5,36 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>康康背词器</title>
     <style>
+        /* General Styling */
         *, *::before, *::after { box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; color: #333; margin: 0; padding: 1rem; }
-        main { text-align: center; width: 100%; max-width: 600px; margin: 0 auto;}
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            background-color: #f0f2f5; 
+            color: #333; 
+            margin: 0; 
+            padding: 1rem; 
+        }
+        main { 
+            text-align: center; 
+            width: 100%; 
+            max-width: 600px; 
+            margin: 0 auto;
+        }
 
-        /* --- 样式部分 --- */
         .hidden { display: none !important; }
-        #app-title { font-size: 2.8rem; font-weight: 300; color: #555; letter-spacing: 4px; margin: 1rem 0 2rem 0; }
+        #app-title { 
+            font-size: 2.8rem; 
+            font-weight: 300; 
+            color: #555; 
+            letter-spacing: 4px; 
+            margin: 1rem 0 2rem 0; 
+        }
         
-        #add-word-container { display: flex; gap: 10px; margin-bottom: 1.5rem; background-color: #fff; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
-        #add-word-input { flex-grow: 1; border: 1px solid #ccc; padding: 0.75rem; border-radius: 8px; font-size: 1rem; }
-        #add-word-btn { border: none; background-color: #17a2b8; color: white; padding: 0 1.5rem; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: background-color 0.2s; }
+        /* Add Word Container */
+        #add-word-container { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 1.5rem; 
+            background-color: #fff; 
+            padding: 1rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+        }
+        #add-word-input { 
+            flex-grow: 1; 
+            border: 1px solid #ccc; 
+            padding: 0.75rem; 
+            border-radius: 8px; 
+            font-size: 1rem; 
+        }
+        #add-word-btn { 
+            border: none; 
+            background-color: #17a2b8; 
+            color: white; 
+            padding: 0 1.5rem; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 1rem; 
+            transition: background-color 0.2s; 
+        }
         #add-word-btn:hover { background-color: #138496; }
 
-        .mode-switcher { margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-        .mode-button { background: #fff; border: 1px solid #ccc; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem; margin: 0; }
-        .mode-button.active { background: #007bff; color: white; border-color: #007bff; }
+        /* Mode Switcher */
+        .mode-switcher { 
+            margin-bottom: 1.5rem; 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 10px; 
+        }
+        .mode-button { 
+            background: #fff; 
+            border: 1px solid #ccc; 
+            padding: 0.5rem 1rem; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 0.9rem; 
+            margin: 0; 
+        }
+        .mode-button.active { 
+            background: #007bff; 
+            color: white; 
+            border-color: #007bff; 
+        }
 
-        .word-card { background-color: #ffffff; padding: 2.5rem 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); min-height: 400px; display: flex; flex-direction: column; justify-content: center; }
-        .word-header { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 2rem; }
-        #main-word { font-size: 3.5rem; font-weight: bold; margin: 0; }
+        /* Word Card */
+        .word-card { 
+            background-color: #ffffff; 
+            padding: 2.5rem 2rem; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1); 
+            min-height: 400px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+        }
+        .word-header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 1rem; 
+            margin-bottom: 2rem; 
+        }
+        #main-word { 
+            font-size: 3.5rem; 
+            font-weight: bold; 
+            margin: 0; 
+        }
         #word-details { transition: opacity 0.5s ease; }
         #pronunciation, #definition { margin: 0.5rem 0; }
-        .speak-btn { background: none; border: none; cursor: pointer; padding: 0.5rem; line-height: 1; border-radius: 50%; transition: background-color 0.2s; }
+        .speak-btn { 
+            background: none; 
+            border: none; 
+            cursor: pointer; 
+            padding: 0.5rem; 
+            line-height: 1; 
+            border-radius: 50%; 
+            transition: background-color 0.2s; 
+        }
         .speak-btn:hover { background-color: #f0f0f0; }
         .speak-btn svg { width: 28px; height: 28px; fill: #555; }
 
+        /* Sentence Makers & Feedback */
         #sentence-maker, #challenge-sentence-maker, #translation-challenge-maker { margin-top: 1.5rem; }
-        #sentence-input, #challenge-sentence-input, #translation-challenge-input { width: 100%; min-height: 100px; padding: 0.5rem; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; }
-        #ai-feedback, #challenge-ai-feedback, #translation-ai-feedback { margin-top: 1.5rem; padding: 1rem; border-radius: 8px; background-color: #e9ecef; text-align: left;}
+        #sentence-input, #challenge-sentence-input, #translation-challenge-input { 
+            width: 100%; 
+            min-height: 100px; 
+            padding: 0.5rem; 
+            font-size: 1rem; 
+            border-radius: 8px; 
+            border: 1px solid #ccc; 
+        }
+        #ai-feedback, #challenge-ai-feedback, #translation-ai-feedback { 
+            margin-top: 1.5rem; 
+            padding: 1rem; 
+            border-radius: 8px; 
+            background-color: #e9ecef; 
+            text-align: left;
+        }
 
+        /* Loading Spinners */
         #loading-spinner, #challenge-loading-spinner, #translation-loading-spinner {
             border: 4px solid #f3f3f3;
             border-top: 4px solid #007bff;
@@ -46,15 +149,46 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .actions { margin-top: 2rem; display: flex; justify-content: space-around; }
-        .action-button { width: 45%; border: none; padding: 1rem; border-radius: 50px; font-size: 1.2rem; cursor: pointer; transition: all 0.2s ease; }
+        /* Action Buttons */
+        .actions { 
+            margin-top: 2rem; 
+            display: flex; 
+            justify-content: space-around; 
+        }
+        .action-button { 
+            width: 45%; 
+            border: none; 
+            padding: 1rem; 
+            border-radius: 50px; 
+            font-size: 1.2rem; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+        }
         #btn-unknown { background-color: #ffc107; }
         #btn-known, #btn-confirm-known { background-color: #28a745; color: white; }
-        #btn-correction, #btn-submit-sentence, #btn-finish-learning, #btn-start-challenge, #btn-submit-challenge, #btn-next-challenge, #btn-start-translation-challenge, #btn-submit-translation, #btn-next-translation-challenge { background-color: #007bff; color: white; }
+        #btn-correction, #btn-submit-sentence, #btn-finish-learning, #btn-start-challenge, #btn-submit-challenge, #btn-next-challenge, #btn-start-translation-challenge, #btn-submit-translation, #btn-next-translation-challenge { 
+            background-color: #007bff; 
+            color: white; 
+        }
         
+        /* Challenge Views */
         #challenge-setup, #translation-challenge-setup { padding: 2rem; }
-        #challenge-words-display { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-bottom: 1.5rem; }
-        .challenge-word-item { display: flex; align-items: center; gap: 8px; background: #fff; padding: 8px 15px; border-radius: 20px; border: 1px solid #ddd; }
+        #challenge-words-display { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 15px; 
+            margin-bottom: 1.5rem; 
+        }
+        .challenge-word-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 8px; 
+            background: #fff; 
+            padding: 8px 15px; 
+            border-radius: 20px; 
+            border: 1px solid #ddd; 
+        }
         .challenge-word-item label { font-size: 0.8rem; cursor: pointer; }
 
         #translation-chinese-sentence {
@@ -66,12 +200,114 @@
             background-color: #f8f9fa;
         }
         
+        /* List Views */
         .list-view { padding: 1rem; }
         .word-list-container { margin-bottom: 2rem; }
-        .word-list-container h3 { color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 0.5rem; }
+        .word-list-container h3 { 
+            color: #007bff; 
+            border-bottom: 2px solid #007bff; 
+            padding-bottom: 0.5rem; 
+        }
         .word-list { list-style-type: none; padding: 0; }
-        .word-list li { background-color: #fff; padding: 0.75rem 1rem; margin-bottom: 0.5rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .delete-word-btn { background-color: #dc3545; color: white; border: none; padding: 0.3rem 0.6rem; border-radius: 5px; cursor: pointer; }
+        .word-list li { 
+            background-color: #fff; 
+            padding: 0.75rem 1rem; 
+            margin-bottom: 0.5rem; 
+            border-radius: 8px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+        }
+        .delete-word-btn { 
+            background-color: #dc3545; 
+            color: white; 
+            border: none; 
+            padding: 0.3rem 0.6rem; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        
+        /* --- NEW FEATURE: Errata Styles --- */
+        #errata-view { text-align: left; }
+        .errata-group { 
+            background: #fff; 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            margin-bottom: 1.5rem; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+        }
+        .errata-group-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid #eee; 
+            padding-bottom: 1rem; 
+            margin-bottom: 1rem; 
+        }
+        .errata-group-header h3 { margin: 0; color: #007bff; }
+        .delete-group-btn { 
+            background-color: #dc3545; 
+            color: white; 
+            border: none; 
+            padding: 0.5rem 1rem; 
+            border-radius: 8px; 
+            cursor: pointer; 
+        }
+        .add-word-to-group-form { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 1rem; 
+        }
+        .add-word-to-group-input { 
+            flex-grow: 1; 
+            border: 1px solid #ccc; 
+            padding: 0.5rem; 
+            border-radius: 8px; 
+        }
+        .add-word-to-group-btn { 
+            border: none; 
+            background-color: #28a745; 
+            color: white; 
+            padding: 0 1.5rem; 
+            border-radius: 8px; 
+            cursor: pointer; 
+        }
+        .errata-word-list { list-style-type: none; padding: 0; }
+        .errata-word-list li { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0.5rem; 
+            border-bottom: 1px solid #f0f0f0; 
+        }
+        #create-group-btn { 
+            width: 100%; 
+            padding: 1rem; 
+            font-size: 1.2rem; 
+            background-color: #17a2b8; 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            margin-top: 1rem; 
+        }
+        /* --- NEW FEATURE: Word Source Selector Styles --- */
+        #word-source-selector-container { 
+            margin-bottom: 1rem; 
+            background-color: #fff; 
+            padding: 1rem; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); 
+        }
+        #word-source-selector { 
+            width: 100%; 
+            padding: 0.75rem; 
+            border-radius: 8px; 
+            border: 1px solid #ccc; 
+            font-size: 1rem; 
+        }
+
     </style>
 </head>
 <body>
@@ -79,19 +315,26 @@
     <main>
         <h1 id="app-title">康康背词器</h1>
         <div id="add-word-container">
-            <input type="text" id="add-word-input" placeholder="向词库添加新单词...">
+            <input type="text" id="add-word-input" placeholder="向主词库添加新单词...">
             <button id="add-word-btn">添加并学习</button>
         </div>
         <div class="mode-switcher">
             <button id="mode-learn" class="mode-button active">学习</button>
             <button id="mode-challenge" class="mode-button">造句大挑战</button>
             <button id="mode-translation-challenge" class="mode-button">翻译大挑战 ✍️</button>
+            <!-- NEW FEATURE: Errata Button -->
+            <button id="mode-errata" class="mode-button">错词本管理</button>
             <button id="mode-known-list" class="mode-button">已认识列表</button>
             <button id="mode-review-list" class="mode-button">待复习列表</button>
         </div>
 
-        <!-- 学习视图 -->
+        <!-- Learn View -->
         <div id="learn-view">
+            <!-- NEW FEATURE: Word Source Selector -->
+            <div id="word-source-selector-container">
+                <label for="word-source-selector">当前词库: </label>
+                <select id="word-source-selector"></select>
+            </div>
             <div class="word-card">
                 <div class="word-header">
                     <h2 id="main-word">正在初始化...</h2>
@@ -116,7 +359,7 @@
             <div id="actions-finish" class="actions hidden"> <button id="btn-finish-learning" class="action-button" style="width: 95%;">完成学习</button> </div>
         </div>
 
-        <!-- 造句大挑战视图 -->
+        <!-- Sentence Challenge View -->
         <div id="challenge-view" class="hidden">
              <div class="word-card">
                 <div id="challenge-setup">
@@ -151,7 +394,7 @@
             </div>
         </div>
 
-        <!-- 翻译大挑战视图 -->
+        <!-- Translation Challenge View -->
         <div id="translation-challenge-view" class="hidden">
             <div class="word-card">
                 <div id="translation-challenge-setup">
@@ -177,7 +420,13 @@
             </div>
         </div>
 
-        <!-- 已认识列表视图 -->
+        <!-- NEW FEATURE: Errata View -->
+        <div id="errata-view" class="list-view hidden">
+            <div id="errata-groups-container"></div>
+            <button id="create-group-btn">创建新分组</button>
+        </div>
+
+        <!-- Known List View -->
         <div id="known-list-view" class="list-view hidden">
             <div class="word-list-container">
                 <h3>已认识列表</h3>
@@ -185,7 +434,7 @@
             </div>
         </div>
 
-        <!-- 待复习列表视图 -->
+        <!-- Review List View -->
         <div id="review-list-view" class="list-view hidden">
             <div class="word-list-container">
                 <h3>待复习列表</h3>
@@ -195,15 +444,17 @@
     </main>
 
     <script>
-        // --- 1. 配置和常量 ---
+        // --- 1. Configuration and Constants ---
         const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
         const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心';
         const LOCAL_STORAGE_KEY_KNOWN = 'mySmartWordBook_knownList';
         const LOCAL_STORAGE_KEY_REVIEW = 'mySmartWordBook_reviewList';
+        // NEW FEATURE: Errata Local Storage Key
+        const LOCAL_STORAGE_KEY_ERRATA = 'mySmartWordBook_errata';
         const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
         const NEW_WORDS_PER_SESSION = 5;
 
-        // --- 2. 获取页面元素 ---
+        // --- 2. Get Page Elements ---
         const addWordInput = document.getElementById('add-word-input');
         const addWordBtn = document.getElementById('add-word-btn');
         const mainWordEl = document.getElementById('main-word');
@@ -261,8 +512,15 @@
         const knownWordsListEl = document.getElementById('known-words-list');
         const reviewWordsListEl = document.getElementById('review-words-list');
 
+        // --- NEW FEATURE: Errata Elements ---
+        const modeErrataBtn = document.getElementById('mode-errata');
+        const errataView = document.getElementById('errata-view');
+        const errataGroupsContainer = document.getElementById('errata-groups-container');
+        const createGroupBtn = document.getElementById('create-group-btn');
+        const wordSourceSelector = document.getElementById('word-source-selector');
 
-        // --- 3. 状态管理 ---
+
+        // --- 3. State Management ---
         let allWords = [];
         let learningQueue = [];
         let currentWord = null;
@@ -270,20 +528,37 @@
         let currentChineseSentence = '';
         let knownWords = [];
         let reviewWords = [];
+        // NEW FEATURE: Errata State
+        let errata = {}; // { groupName: ['word1', 'word2'], ... }
 
 
+        /**
+         * Loads all application state from localStorage.
+         */
         function loadState() {
             allWords = localStorage.getItem(LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) : [];
             knownWords = localStorage.getItem(LOCAL_STORAGE_KEY_KNOWN) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_KNOWN)) : [];
             reviewWords = localStorage.getItem(LOCAL_STORAGE_KEY_REVIEW) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_REVIEW)) : [];
+            // NEW FEATURE: Load Errata State
+            errata = localStorage.getItem(LOCAL_STORAGE_KEY_ERRATA) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ERRATA)) : {};
         }
+        /**
+         * Saves all application state to localStorage.
+         */
         function saveState() {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords));
             localStorage.setItem(LOCAL_STORAGE_KEY_KNOWN, JSON.stringify(knownWords));
             localStorage.setItem(LOCAL_STORAGE_KEY_REVIEW, JSON.stringify(reviewWords));
+            // NEW FEATURE: Save Errata State
+            localStorage.setItem(LOCAL_STORAGE_KEY_ERRATA, JSON.stringify(errata));
         }
         
-        // --- 4. UI状态机和视图切换 ---
+        // --- 4. UI State Machine and View Switching ---
+        
+        /**
+         * Controls the visibility of UI elements within the main learning card.
+         * @param {string} state - The current state ('reveal_word', 'show_answer', 'make_sentence', 'show_feedback').
+         */
         function updateUiForState(state) {
             wordDetailsEl.classList.add('hidden');
             sentenceMakerEl.classList.add('hidden');
@@ -314,12 +589,19 @@
                     break;
             }
         }
+
+        /**
+         * Switches between the main application views.
+         * @param {string} mode - The view to switch to ('learn', 'challenge', 'errata', etc.).
+         */
         function switchView(mode) {
             learnView.classList.add('hidden');
             challengeView.classList.add('hidden');
             translationChallengeView.classList.add('hidden');
             knownListView.classList.add('hidden');
             reviewListView.classList.add('hidden');
+            // NEW FEATURE: Hide Errata View
+            errataView.classList.add('hidden');
             
             document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
 
@@ -340,9 +622,16 @@
                 reviewListView.classList.remove('hidden');
                 modeReviewListBtn.classList.add('active');
                 populateReviewList();
+            } else if (mode === 'errata') { // NEW FEATURE: Switch to Errata View
+                errataView.classList.remove('hidden');
+                modeErrataBtn.classList.add('active');
+                renderErrataView();
             }
         }
 
+        /**
+         * Renders the list of known words.
+         */
         function populateKnownList() {
             knownWordsListEl.innerHTML = '';
             knownWords.forEach(word => {
@@ -357,6 +646,9 @@
             });
         }
 
+        /**
+         * Renders the list of words to review.
+         */
         function populateReviewList() {
             reviewWordsListEl.innerHTML = '';
             reviewWords.forEach(word => {
@@ -371,6 +663,177 @@
             });
         }
         
+        // --- NEW FEATURE: Functions to render and manage the Errata View ---
+        
+        /**
+         * Renders the entire errata management view, including all groups and words.
+         */
+        function renderErrataView() {
+            errataGroupsContainer.innerHTML = '';
+            if (Object.keys(errata).length === 0) {
+                errataGroupsContainer.innerHTML = '<p>还没有错词分组。点击下方按钮创建一个吧！</p>';
+            }
+            for (const groupName in errata) {
+                const groupDiv = document.createElement('div');
+                groupDiv.className = 'errata-group';
+                
+                const header = document.createElement('div');
+                header.className = 'errata-group-header';
+                const title = document.createElement('h3');
+                title.textContent = groupName;
+                const deleteGroupBtn = document.createElement('button');
+                deleteGroupBtn.textContent = '删除分组';
+                deleteGroupBtn.className = 'delete-group-btn';
+                deleteGroupBtn.onclick = () => handleDeleteGroup(groupName);
+                header.appendChild(title);
+                header.appendChild(deleteGroupBtn);
+                
+                const addForm = document.createElement('div');
+                addForm.className = 'add-word-to-group-form';
+                const addInput = document.createElement('input');
+                addInput.type = 'text';
+                addInput.placeholder = `向“${groupName}”添加单词...`;
+                addInput.className = 'add-word-to-group-input';
+                const addBtn = document.createElement('button');
+                addBtn.textContent = '添加';
+                addBtn.className = 'add-word-to-group-btn';
+                addBtn.onclick = () => handleAddWordToGroup(groupName, addInput.value);
+                addForm.appendChild(addInput);
+                addForm.appendChild(addBtn);
+
+                const wordList = document.createElement('ul');
+                wordList.className = 'errata-word-list';
+                errata[groupName].forEach(word => {
+                    const li = document.createElement('li');
+                    li.textContent = word;
+                    const deleteWordBtn = document.createElement('button');
+                    deleteWordBtn.textContent = '×';
+                    deleteWordBtn.className = 'delete-word-btn';
+                    deleteWordBtn.title = '从本分组删除';
+                    deleteWordBtn.onclick = () => handleDeleteWordFromGroup(groupName, word);
+                    li.appendChild(deleteWordBtn);
+                    wordList.appendChild(li);
+                });
+
+                groupDiv.appendChild(header);
+                groupDiv.appendChild(addForm);
+                groupDiv.appendChild(wordList);
+                errataGroupsContainer.appendChild(groupDiv);
+            }
+            // After rendering, also update the selector in the learn view
+            updateWordSourceSelector();
+        }
+
+        /**
+         * Handles the creation of a new errata group.
+         */
+        function handleCreateGroup() {
+            const groupName = prompt('请输入新分组的名称：');
+            if (groupName && groupName.trim()) {
+                if (errata[groupName.trim()]) {
+                    alert('该分组已存在！');
+                } else {
+                    errata[groupName.trim()] = [];
+                    saveState();
+                    renderErrataView();
+                }
+            }
+        }
+
+        /**
+         * Handles the deletion of an errata group.
+         * @param {string} groupName - The name of the group to delete.
+         */
+        function handleDeleteGroup(groupName) {
+            if (confirm(`确定要删除分组“${groupName}”及其中的所有单词吗？此操作不可撤销。`)) {
+                delete errata[groupName];
+                saveState();
+                renderErrataView();
+            }
+        }
+
+        /**
+         * Handles adding a new word to a specific errata group.
+         * @param {string} groupName - The name of the group.
+         * @param {string} word - The word to add.
+         */
+        function handleAddWordToGroup(groupName, word) {
+            const newWord = word.trim().toLowerCase();
+            if (!newWord) {
+                alert('请输入一个单词。');
+                return;
+            }
+            if (!errata[groupName].includes(newWord)) {
+                errata[groupName].push(newWord);
+                // Also add to the main word list if it doesn't exist, so it can be studied
+                if (!allWords.some(w => w.word === newWord)) {
+                    allWords.push({
+                        word: newWord,
+                        status: 'new',
+                        srsLevel: 0,
+                        nextReviewDate: null
+                    });
+                }
+                saveState();
+                renderErrataView();
+            } else {
+                alert(`单词“${newWord}”已在该分组中。`);
+            }
+        }
+
+        /**
+         * Handles deleting a word from a specific errata group.
+         * @param {string} groupName - The name of the group.
+         * @param {string} word - The word to delete.
+         */
+        function handleDeleteWordFromGroup(groupName, word) {
+            const wordIndex = errata[groupName].indexOf(word);
+            if (wordIndex > -1) {
+                errata[groupName].splice(wordIndex, 1);
+                saveState();
+                renderErrataView();
+            }
+        }
+
+        /**
+         * Populates and manages the word source dropdown selector in the learn view.
+         */
+        function updateWordSourceSelector() {
+            const selectedValue = wordSourceSelector.value;
+            wordSourceSelector.innerHTML = '';
+
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'default';
+            defaultOption.textContent = '默认词库 (考研核心)';
+            wordSourceSelector.appendChild(defaultOption);
+
+            if (Object.keys(errata).length > 0) {
+                const allErrataOption = document.createElement('option');
+                allErrataOption.value = 'errata_all';
+                allErrataOption.textContent = '所有错词';
+                wordSourceSelector.appendChild(allErrataOption);
+                
+                const divider = document.createElement('option');
+                divider.disabled = true;
+                divider.textContent = '--- 错词分组 ---';
+                wordSourceSelector.appendChild(divider);
+
+                for (const groupName in errata) {
+                    const groupOption = document.createElement('option');
+                    groupOption.value = `errata_${groupName}`;
+                    groupOption.textContent = `错词本: ${groupName}`;
+                    wordSourceSelector.appendChild(groupOption);
+                }
+            }
+            // Try to restore previous selection
+            wordSourceSelector.value = selectedValue || 'default';
+        }
+
+        /**
+         * Adds a word to the 'known' or 'review' list and ensures it's removed from the other.
+         * @param {string} listName - 'known' or 'review'.
+         * @param {string} word - The word to add.
+         */
         function addToList(listName, word) {
             let list, otherList;
             if (listName === 'known') {
@@ -389,17 +852,110 @@
         }
 
 
-        // --- 5. 核心学习逻辑 ---
-        function speakWord(text) { if ('speechSynthesis' in window && text) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US'; utterance.rate = 0.9; window.speechSynthesis.speak(utterance); } }
-        function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
-        function buildLearningQueue() { const today = new Date().setHours(0, 0, 0, 0); const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today); const newWords = allWords.filter(word => word.status === 'new'); shuffleArray(wordsToReview); shuffleArray(newWords); learningQueue = [...wordsToReview]; if (wordsToReview.length === 0 && newWords.length > 0) { learningQueue = newWords.slice(0, NEW_WORDS_PER_SESSION); } }
-        function showNextWord() { buildLearningQueue();if (learningQueue.length > 0) {currentWord = learningQueue.shift();mainWordEl.textContent = currentWord.word;updateUiForState('reveal_word');speakBtn.classList.remove('hidden');} else {learnView.innerHTML = `<div class="word-card" style="font-size: 1.5rem; color: #007bff;">今日任务完成！🎉</div>`;speakBtn.classList.add('hidden');}}
+        // --- 5. Core Learning Logic ---
+        /**
+         * Uses the browser's speech synthesis to speak a word.
+         * @param {string} text - The text to speak.
+         */
+        function speakWord(text) { 
+            if ('speechSynthesis' in window && text) { 
+                window.speechSynthesis.cancel(); 
+                const utterance = new SpeechSynthesisUtterance(text); 
+                utterance.lang = 'en-US'; 
+                utterance.rate = 0.9; 
+                window.speechSynthesis.speak(utterance); 
+            } 
+        }
         
-        // 恢复为使用你自己的API
+        /**
+         * Shuffles an array in place.
+         * @param {Array} array - The array to shuffle.
+         */
+        function shuffleArray(array) { 
+            for (let i = array.length - 1; i > 0; i--) { 
+                const j = Math.floor(Math.random() * (i + 1)); 
+                [array[i], array[j]] = [array[j], array[i]]; 
+            } 
+        }
+        
+        /**
+         * Builds the learning queue based on the selected word source (default, all errata, or a specific errata group).
+         */
+        function buildLearningQueue() {
+            const source = wordSourceSelector.value;
+            let sourceWords = [];
+
+            if (source.startsWith('errata_')) {
+                const groupName = source.replace('errata_', '');
+                if (groupName === 'all') {
+                    // Get all unique words from all errata groups
+                    const allErrataWords = new Set();
+                    Object.values(errata).forEach(group => {
+                        group.forEach(word => allErrataWords.add(word));
+                    });
+                    sourceWords = Array.from(allErrataWords);
+                } else if (errata[groupName]) {
+                    sourceWords = errata[groupName];
+                }
+            }
+
+            let wordObjectsToLearn;
+            if (sourceWords.length > 0) {
+                 // For errata, we find the corresponding objects in allWords.
+                 // We study all of them, ignoring SRS for queue building, but updating it during review.
+                 wordObjectsToLearn = allWords.filter(w => sourceWords.includes(w.word));
+            } else {
+                // Default SRS logic for the main word list.
+                const today = new Date().setHours(0, 0, 0, 0);
+                const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today);
+                const newWords = allWords.filter(word => word.status === 'new');
+                shuffleArray(wordsToReview);
+                shuffleArray(newWords);
+                wordObjectsToLearn = [...wordsToReview];
+                if (wordsToReview.length === 0 && newWords.length > 0) {
+                    wordObjectsToLearn = newWords.slice(0, NEW_WORDS_PER_SESSION);
+                }
+            }
+            shuffleArray(wordObjectsToLearn);
+            learningQueue = wordObjectsToLearn;
+        }
+
+        /**
+         * Displays the next word from the learning queue.
+         */
+        function showNextWord() { 
+            // Build queue right before showing the next word to reflect any changes.
+            buildLearningQueue(); 
+
+            if (learningQueue.length > 0) {
+                currentWord = learningQueue.shift();
+                mainWordEl.textContent = currentWord.word;
+                updateUiForState('reveal_word');
+                speakBtn.classList.remove('hidden');
+            } else {
+                const sourceName = wordSourceSelector.options[wordSourceSelector.selectedIndex].text;
+                // Display completion message and keep the source selector visible.
+                learnView.innerHTML = `<div id="word-source-selector-container" style="margin-bottom: 1rem;"><label for="word-source-selector">当前词库: </label><select id="word-source-selector"></select></div><div class="word-card" style="font-size: 1.5rem; color: #007bff;">词库“${sourceName}”本日任务完成！🎉</div>`;
+                const newSelector = document.getElementById('word-source-selector');
+                newSelector.onchange = () => { 
+                    // When a new source is selected, rebuild the learn view and start over.
+                    // A simple reload is an easy way to reset the state.
+                    window.location.reload();
+                }; 
+                updateWordSourceSelector(); // Repopulate the selector
+                speakBtn.classList.add('hidden');
+            }
+        }
+        
+        /**
+         * Fetches word details (pronunciation, definition) from the backend API.
+         */
         async function loadWordDetails() {
              pronunciationEl.textContent = '...';
              definitionEl.textContent = '正在获取中文释义...';
              try {
+                 // NOTE: This assumes a local backend server is running at '/api/get-definition'.
+                 // This will not work in a static file environment without a running server.
                  const response = await fetch('/api/get-definition', { 
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
@@ -415,11 +971,50 @@
              } catch (error) {
                  console.error("加载单词详情失败:", error);
                  pronunciationEl.textContent = `[${currentWord.word}]`;
-                 definitionEl.textContent = `释义加载失败。请检查后端API是否在本地运行，或网络连接是否正常。`;
+                 definitionEl.textContent = `释义加载失败。请检查网络连接或后端API是否正常运行。`;
              }
         }
 
-        function startNewChallenge() { const wordCount = parseInt(wordCountSelector.value); const availableWords = allWords.filter(w => w.status !== 'known'); if (availableWords.length < wordCount) { alert(`词库中可供挑战的单词不足${wordCount}个！`); return; } shuffleArray(availableWords); challengeWords = availableWords.slice(0, wordCount).map(w => w.word); challengeWordsDisplay.innerHTML = ''; challengeWords.forEach(word => { const itemDiv = document.createElement('div'); itemDiv.className = 'challenge-word-item'; const wordSpan = document.createElement('span'); wordSpan.textContent = word; const checkboxLabel = document.createElement('label'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.dataset.word = word; checkboxLabel.appendChild(checkbox); checkboxLabel.append(' 不认识'); itemDiv.appendChild(wordSpan); itemDiv.appendChild(checkboxLabel); challengeWordsDisplay.appendChild(itemDiv); }); challengeSetup.classList.add('hidden'); challengeArea.classList.remove('hidden'); challengeSentenceInput.value = ''; challengeAiFeedback.classList.add('hidden'); actionsChallenge.classList.remove('hidden'); btnSubmitChallenge.classList.remove('hidden'); btnNextChallenge.classList.add('hidden'); }
+        /**
+         * Sets up a new sentence challenge.
+         */
+        function startNewChallenge() { 
+            const wordCount = parseInt(wordCountSelector.value); 
+            const availableWords = allWords.filter(w => w.status !== 'known'); 
+            if (availableWords.length < wordCount) { 
+                alert(`词库中可供挑战的单词不足${wordCount}个！`); 
+                return; 
+            } 
+            shuffleArray(availableWords); 
+            challengeWords = availableWords.slice(0, wordCount).map(w => w.word); 
+            challengeWordsDisplay.innerHTML = ''; 
+            challengeWords.forEach(word => { 
+                const itemDiv = document.createElement('div'); 
+                itemDiv.className = 'challenge-word-item'; 
+                const wordSpan = document.createElement('span'); 
+                wordSpan.textContent = word; 
+                const checkboxLabel = document.createElement('label'); 
+                const checkbox = document.createElement('input'); 
+                checkbox.type = 'checkbox'; 
+                checkbox.dataset.word = word; 
+                checkboxLabel.appendChild(checkbox); 
+                checkboxLabel.append(' 不认识'); 
+                itemDiv.appendChild(wordSpan); 
+                itemDiv.appendChild(checkboxLabel); 
+                challengeWordsDisplay.appendChild(itemDiv); 
+            }); 
+            challengeSetup.classList.add('hidden'); 
+            challengeArea.classList.remove('hidden'); 
+            challengeSentenceInput.value = ''; 
+            challengeAiFeedback.classList.add('hidden'); 
+            actionsChallenge.classList.remove('hidden'); 
+            btnSubmitChallenge.classList.remove('hidden'); 
+            btnNextChallenge.classList.add('hidden'); 
+        }
+        
+        /**
+         * Sets up a new translation challenge.
+         */
         async function startNewTranslationChallenge() {
             const topic = translationTopicInput.value.trim();
             if (!topic) {
@@ -436,7 +1031,7 @@
             translationLoadingSpinner.classList.remove('hidden');
             translationChineseSentenceEl.textContent = 'AI 正在为您生成中文句子...';
             try {
-                // 此处为AI生成句子的占位符，实际使用需替换为真实API
+                // NOTE: This assumes a local backend server is running at '/api/get-translation-challenge'.
                 const response = await fetch('/api/get-translation-challenge', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -454,7 +1049,8 @@
             }
         }
 
-        // --- 6. 连接真实AI (占位) ---
+        // --- 6. Connect to Real AI (Placeholder) ---
+        // NOTE: These functions require a backend server to process the requests.
         async function getRealAiSentenceCheck(words, sentence) {
             try {
                 const response = await fetch('/api/check-sentence', { 
@@ -495,7 +1091,12 @@
         }
 
 
-        // --- 7. 事件处理 ---
+        // --- 7. Event Handlers ---
+        /**
+         * Handles deleting a word from the known or review lists.
+         * @param {string} word - The word to delete.
+         * @param {string} listName - 'known' or 'review'.
+         */
         function handleDeleteWord(word, listName) {
             if (listName === 'known') {
                 knownWords = knownWords.filter(w => w !== word);
@@ -507,10 +1108,13 @@
             saveState();
         }
 
+        /**
+         * Handles the click event for adding a new word to the main dictionary.
+         */
         function handleAddWordClick() {
             const newWordStr = addWordInput.value.trim().toLowerCase();
             if (!newWordStr) { alert('请输入一个单词。'); return; }
-            if (allWords.some(w => w.word === newWordStr)) { alert(`单词 "${newWordStr}" 已存在于您的词库中。`); return; }
+            if (allWords.some(w => w.word === newWordStr)) { alert(`单词 "${newWordStr}" 已存在于您的主词库中。`); return; }
 
             const newWordObj = {
                 word: newWordStr,
@@ -520,31 +1124,26 @@
             };
 
             allWords.push(newWordObj);
-            addToList('review', newWordStr);
+            addToList('review', newWordStr); // Also add to review list
+            saveState(); // Save state after adding the word
             addWordInput.value = '';
-            alert(`单词 "${newWordStr}" 已成功添加到待复习列表！`);
-            showNextWord();
+            alert(`单词 "${newWordStr}" 已成功添加到主词库和待复习列表！`);
+            // Refresh the view to show the new word if conditions are met
+            showNextWord(); 
         }
         
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
         
-        /**
-         * BUG修复: 调整执行顺序
-         * 之前: 处理数据 -> 请求API -> 更新UI
-         * 问题: 如果API请求失败，UI更新就不会执行，导致界面卡死。
-         * 现在: 处理数据 -> 更新UI -> 请求API
-         * 效果: 无论API请求成功与否，UI都会立刻响应，保证了应用的流畅性。
-         */
         btnKnown.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
             if (wordIndex > -1) {
+                // This logic correctly handles the status for SRS, even for errata words
                 allWords[wordIndex].status = 'known';
                 allWords[wordIndex].srsLevel = -1;
                 allWords[wordIndex].nextReviewDate = null;
                 addToList('known', currentWord.word);
             }
-            // 关键改动：先更新UI，再加载数据
             updateUiForState('show_answer');
             loadWordDetails();
         });
@@ -559,12 +1158,14 @@
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
                 addToList('review', currentWord.word);
             }
-            // 关键改动：先更新UI，再加载数据
             updateUiForState('make_sentence');
             loadWordDetails();
         });
 
-        btnConfirmKnown.addEventListener('click', () => { showNextWord(); });
+        btnConfirmKnown.addEventListener('click', () => { 
+            saveState(); // Save state before moving to next word
+            showNextWord(); 
+        });
 
         btnCorrection.addEventListener('click', () => { 
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
@@ -576,11 +1177,28 @@
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
                 addToList('review', currentWord.word);
             }
-            // 关键改动：先更新UI
             updateUiForState('make_sentence'); 
         });
 
-        btnSubmitSentence.addEventListener('click', async () => { const userSentence = sentenceInputEl.value.trim();if (userSentence) {loadingSpinner.classList.remove('hidden');aiFeedbackEl.classList.add('hidden');let feedback = '';try {feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);} catch (e) {feedback = `❌ 请求AI时发生未知错误。`;} finally {loadingSpinner.classList.add('hidden');aiFeedbackEl.innerHTML = feedback;updateUiForState('show_feedback');}} else {alert("请输入一个句子！");} });
+        btnSubmitSentence.addEventListener('click', async () => { 
+            const userSentence = sentenceInputEl.value.trim();
+            if (userSentence) {
+                loadingSpinner.classList.remove('hidden');
+                aiFeedbackEl.classList.add('hidden');
+                let feedback = '';
+                try {
+                    feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);
+                } catch (e) {
+                    feedback = `❌ 请求AI时发生未知错误。`;
+                } finally {
+                    loadingSpinner.classList.add('hidden');
+                    aiFeedbackEl.innerHTML = feedback;
+                    updateUiForState('show_feedback');
+                }
+            } else {
+                alert("请输入一个句子！");
+            } 
+        });
         
         btnFinishLearning.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
@@ -592,8 +1210,8 @@
                 const nextReviewDate = new Date();
                 nextReviewDate.setDate(nextReviewDate.getDate() + interval);
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
-                saveState();
             }
+            saveState(); // Save state before moving to next word
             showNextWord();
         });
         
@@ -641,6 +1259,10 @@
         modeTranslationChallengeBtn.addEventListener('click', () => switchView('translation-challenge'));
         modeKnownListBtn.addEventListener('click', () => switchView('known-list'));
         modeReviewListBtn.addEventListener('click', () => switchView('review-list'));
+        // NEW FEATURE: Errata event listeners
+        modeErrataBtn.addEventListener('click', () => switchView('errata'));
+        createGroupBtn.addEventListener('click', handleCreateGroup);
+        wordSourceSelector.addEventListener('change', showNextWord);
 
         btnStartTranslationChallenge.addEventListener('click', startNewTranslationChallenge);
         btnNextTranslationChallenge.addEventListener('click', () => {
@@ -668,7 +1290,10 @@
             }
         });
 
-        // --- 8. 初始化应用 ---
+        // --- 8. Initialize Application ---
+        /**
+         * Initializes the application on page load.
+         */
         async function initializeApp() {
             loadState();
             if (allWords.length === 0) {
@@ -679,6 +1304,7 @@
                     const wordList = await response.json();
                     
                     let initialWords = [];
+                    // Handle both simple array and object-based word lists from the source URL
                     if (Array.isArray(wordList)) {
                        initialWords = wordList;
                     } else {
@@ -688,18 +1314,22 @@
 
                     if (initialWords.length === 0) throw new Error('云端词库为空或格式不正确');
 
-                    allWords = initialWords.map(word => ({ word: word, status: 'new', srsLevel: 0, nextReviewDate: null }));
+                    allWords = initialWords.map(word => ({ word: word.toLowerCase(), status: 'new', srsLevel: 0, nextReviewDate: null }));
                     saveState();
                 } catch (error) {
                     learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
                     return;
                 }
             }
+            // NEW FEATURE: Update selector on init
+            updateWordSourceSelector();
             switchView('learn');
             showNextWord();
         }
 
+        // Start the application
         initializeApp();
     </script>
 </body>
 </html>
+
