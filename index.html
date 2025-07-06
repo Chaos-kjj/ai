@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>康康背词器</title>
+    <title>康康背词器 (本地AI版)</title>
     <style>
         /* General Styling */
         *, *::before, *::after { box-sizing: border-box; }
@@ -19,6 +19,7 @@
             width: 100%; 
             max-width: 600px; 
             margin: 0 auto;
+            position: relative;
         }
 
         .hidden { display: none !important; }
@@ -228,7 +229,7 @@
             cursor: pointer; 
         }
         
-        /* --- NEW FEATURE: Errata Styles --- */
+        /* Errata Styles */
         #errata-view { text-align: left; }
         .errata-group { 
             background: #fff; 
@@ -292,7 +293,6 @@
             cursor: pointer; 
             margin-top: 1rem; 
         }
-        /* --- NEW FEATURE: Word Source Selector Styles --- */
         #word-source-selector-container { 
             margin-bottom: 1rem; 
             background-color: #fff; 
@@ -308,11 +308,91 @@
             font-size: 1rem; 
         }
 
+        /* --- NEW: Ollama AI Settings Styles --- */
+        #ai-settings-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+        }
+        #ai-settings-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: #6c757d;
+        }
+        #ai-settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        .modal-content .form-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        .modal-content label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+        .modal-actions {
+            text-align: right;
+            margin-top: 1.5rem;
+        }
+        .modal-actions button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 0.5rem;
+        }
+        #save-ai-settings-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        #close-ai-settings-btn {
+            background-color: #6c757d;
+            color: white;
+        }
     </style>
 </head>
 <body>
     
     <main>
+        <!-- NEW: AI Settings Button -->
+        <button id="ai-settings-btn" title="AI 设置">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+        </button>
+
         <h1 id="app-title">康康背词器</h1>
         <div id="add-word-container">
             <input type="text" id="add-word-input" placeholder="向主词库添加新单词...">
@@ -322,7 +402,6 @@
             <button id="mode-learn" class="mode-button active">学习</button>
             <button id="mode-challenge" class="mode-button">造句大挑战</button>
             <button id="mode-translation-challenge" class="mode-button">翻译大挑战 ✍️</button>
-            <!-- NEW FEATURE: Errata Button -->
             <button id="mode-errata" class="mode-button">错词本管理</button>
             <button id="mode-known-list" class="mode-button">已认识列表</button>
             <button id="mode-review-list" class="mode-button">待复习列表</button>
@@ -330,7 +409,6 @@
 
         <!-- Learn View -->
         <div id="learn-view">
-            <!-- NEW FEATURE: Word Source Selector -->
             <div id="word-source-selector-container">
                 <label for="word-source-selector">当前词库: </label>
                 <select id="word-source-selector"></select>
@@ -420,7 +498,7 @@
             </div>
         </div>
 
-        <!-- NEW FEATURE: Errata View -->
+        <!-- Errata View -->
         <div id="errata-view" class="list-view hidden">
             <div id="errata-groups-container"></div>
             <button id="create-group-btn">创建新分组</button>
@@ -443,18 +521,41 @@
         </div>
     </main>
 
+    <!-- NEW: AI Settings Modal -->
+    <div id="ai-settings-modal" class="hidden">
+        <div class="modal-content">
+            <h3>本地AI设置</h3>
+            <div class="form-group">
+                <label for="ollama-url-input">Ollama API 地址</label>
+                <input type="text" id="ollama-url-input" placeholder="http://localhost:11434">
+            </div>
+            <div class="form-group">
+                <label for="ollama-model-input">模型名称</label>
+                <input type="text" id="ollama-model-input" placeholder="例如: llama3, qwen:7b">
+            </div>
+            <div class="modal-actions">
+                <button id="close-ai-settings-btn">关闭</button>
+                <button id="save-ai-settings-btn">保存</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- 1. Configuration and Constants ---
         const WORD_LIST_URL = 'https://gist.githubusercontent.com/Chaos-kjj/fb6947acc8117866d7c62e79b9288f84/raw/b7a1147e0e15df9480cbe5c5e73c8ebc87d981ca/word_lists.json';
-        const LOCAL_STORAGE_KEY = 'mySmartWordBook_考研核心';
-        const LOCAL_STORAGE_KEY_KNOWN = 'mySmartWordBook_knownList';
-        const LOCAL_STORAGE_KEY_REVIEW = 'mySmartWordBook_reviewList';
-        // NEW FEATURE: Errata Local Storage Key
-        const LOCAL_STORAGE_KEY_ERRATA = 'mySmartWordBook_errata';
+        const LOCAL_STORAGE_KEY_PREFIX = 'mySmartWordBook_';
+        const LOCAL_STORAGE_KEY = `${LOCAL_STORAGE_KEY_PREFIX}考研核心`;
+        const LOCAL_STORAGE_KEY_KNOWN = `${LOCAL_STORAGE_KEY_PREFIX}knownList`;
+        const LOCAL_STORAGE_KEY_REVIEW = `${LOCAL_STORAGE_KEY_PREFIX}reviewList`;
+        const LOCAL_STORAGE_KEY_ERRATA = `${LOCAL_STORAGE_KEY_PREFIX}errata`;
+        // NEW: Local storage for AI settings
+        const LOCAL_STORAGE_KEY_AI_CONFIG = `${LOCAL_STORAGE_KEY_PREFIX}aiConfig`;
+
         const SRS_INTERVALS_DAYS = [1, 2, 4, 8, 15, 30, 60];
         const NEW_WORDS_PER_SESSION = 5;
 
         // --- 2. Get Page Elements ---
+        // (Existing element queries are the same)
         const addWordInput = document.getElementById('add-word-input');
         const addWordBtn = document.getElementById('add-word-btn');
         const mainWordEl = document.getElementById('main-word');
@@ -504,20 +605,25 @@
         const actionsTranslationChallenge = document.getElementById('actions-translation-challenge');
         const btnSubmitTranslation = document.getElementById('btn-submit-translation');
         const btnNextTranslationChallenge = document.getElementById('btn-next-translation-challenge');
-        
         const modeKnownListBtn = document.getElementById('mode-known-list');
         const modeReviewListBtn = document.getElementById('mode-review-list');
         const knownListView = document.getElementById('known-list-view');
         const reviewListView = document.getElementById('review-list-view');
         const knownWordsListEl = document.getElementById('known-words-list');
         const reviewWordsListEl = document.getElementById('review-words-list');
-
-        // --- NEW FEATURE: Errata Elements ---
         const modeErrataBtn = document.getElementById('mode-errata');
         const errataView = document.getElementById('errata-view');
         const errataGroupsContainer = document.getElementById('errata-groups-container');
         const createGroupBtn = document.getElementById('create-group-btn');
         const wordSourceSelector = document.getElementById('word-source-selector');
+
+        // NEW: AI Settings Elements
+        const aiSettingsBtn = document.getElementById('ai-settings-btn');
+        const aiSettingsModal = document.getElementById('ai-settings-modal');
+        const ollamaUrlInput = document.getElementById('ollama-url-input');
+        const ollamaModelInput = document.getElementById('ollama-model-input');
+        const saveAiSettingsBtn = document.getElementById('save-ai-settings-btn');
+        const closeAiSettingsBtn = document.getElementById('close-ai-settings-btn');
 
 
         // --- 3. State Management ---
@@ -528,37 +634,36 @@
         let currentChineseSentence = '';
         let knownWords = [];
         let reviewWords = [];
-        // NEW FEATURE: Errata State
-        let errata = {}; // { groupName: ['word1', 'word2'], ... }
+        let errata = {};
+        // NEW: AI Config State
+        let aiConfig = {
+            url: 'http://localhost:11434',
+            model: 'llama3'
+        };
 
-
-        /**
-         * Loads all application state from localStorage.
-         */
         function loadState() {
-            allWords = localStorage.getItem(LOCAL_STORAGE_KEY) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)) : [];
-            knownWords = localStorage.getItem(LOCAL_STORAGE_KEY_KNOWN) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_KNOWN)) : [];
-            reviewWords = localStorage.getItem(LOCAL_STORAGE_KEY_REVIEW) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_REVIEW)) : [];
-            // NEW FEATURE: Load Errata State
-            errata = localStorage.getItem(LOCAL_STORAGE_KEY_ERRATA) ? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ERRATA)) : {};
+            allWords = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
+            knownWords = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_KNOWN) || '[]');
+            reviewWords = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_REVIEW) || '[]');
+            errata = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_ERRATA) || '{}');
+            // NEW: Load AI Config
+            const savedAiConfig = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_AI_CONFIG) || '{}');
+            aiConfig = { ...aiConfig, ...savedAiConfig };
         }
-        /**
-         * Saves all application state to localStorage.
-         */
         function saveState() {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allWords));
             localStorage.setItem(LOCAL_STORAGE_KEY_KNOWN, JSON.stringify(knownWords));
             localStorage.setItem(LOCAL_STORAGE_KEY_REVIEW, JSON.stringify(reviewWords));
-            // NEW FEATURE: Save Errata State
             localStorage.setItem(LOCAL_STORAGE_KEY_ERRATA, JSON.stringify(errata));
+            // NEW: AI Config is saved separately by its own function
+        }
+        // NEW: Function to save AI config
+        function saveAiConfig() {
+            localStorage.setItem(LOCAL_STORAGE_KEY_AI_CONFIG, JSON.stringify(aiConfig));
         }
         
         // --- 4. UI State Machine and View Switching ---
-        
-        /**
-         * Controls the visibility of UI elements within the main learning card.
-         * @param {string} state - The current state ('reveal_word', 'show_answer', 'make_sentence', 'show_feedback').
-         */
+        // (This section is unchanged)
         function updateUiForState(state) {
             wordDetailsEl.classList.add('hidden');
             sentenceMakerEl.classList.add('hidden');
@@ -589,18 +694,12 @@
                     break;
             }
         }
-
-        /**
-         * Switches between the main application views.
-         * @param {string} mode - The view to switch to ('learn', 'challenge', 'errata', etc.).
-         */
         function switchView(mode) {
             learnView.classList.add('hidden');
             challengeView.classList.add('hidden');
             translationChallengeView.classList.add('hidden');
             knownListView.classList.add('hidden');
             reviewListView.classList.add('hidden');
-            // NEW FEATURE: Hide Errata View
             errataView.classList.add('hidden');
             
             document.querySelectorAll('.mode-button').forEach(btn => btn.classList.remove('active'));
@@ -622,16 +721,12 @@
                 reviewListView.classList.remove('hidden');
                 modeReviewListBtn.classList.add('active');
                 populateReviewList();
-            } else if (mode === 'errata') { // NEW FEATURE: Switch to Errata View
+            } else if (mode === 'errata') { 
                 errataView.classList.remove('hidden');
                 modeErrataBtn.classList.add('active');
                 renderErrataView();
             }
         }
-
-        /**
-         * Renders the list of known words.
-         */
         function populateKnownList() {
             knownWordsListEl.innerHTML = '';
             knownWords.forEach(word => {
@@ -645,10 +740,6 @@
                 knownWordsListEl.appendChild(li);
             });
         }
-
-        /**
-         * Renders the list of words to review.
-         */
         function populateReviewList() {
             reviewWordsListEl.innerHTML = '';
             reviewWords.forEach(word => {
@@ -662,12 +753,6 @@
                 reviewWordsListEl.appendChild(li);
             });
         }
-        
-        // --- NEW FEATURE: Functions to render and manage the Errata View ---
-        
-        /**
-         * Renders the entire errata management view, including all groups and words.
-         */
         function renderErrataView() {
             errataGroupsContainer.innerHTML = '';
             if (Object.keys(errata).length === 0) {
@@ -697,7 +782,10 @@
                 const addBtn = document.createElement('button');
                 addBtn.textContent = '添加';
                 addBtn.className = 'add-word-to-group-btn';
-                addBtn.onclick = () => handleAddWordToGroup(groupName, addInput.value);
+                addBtn.onclick = () => {
+                    handleAddWordToGroup(groupName, addInput.value);
+                    addInput.value = '';
+                };
                 addForm.appendChild(addInput);
                 addForm.appendChild(addBtn);
 
@@ -720,13 +808,8 @@
                 groupDiv.appendChild(wordList);
                 errataGroupsContainer.appendChild(groupDiv);
             }
-            // After rendering, also update the selector in the learn view
             updateWordSourceSelector();
         }
-
-        /**
-         * Handles the creation of a new errata group.
-         */
         function handleCreateGroup() {
             const groupName = prompt('请输入新分组的名称：');
             if (groupName && groupName.trim()) {
@@ -739,11 +822,6 @@
                 }
             }
         }
-
-        /**
-         * Handles the deletion of an errata group.
-         * @param {string} groupName - The name of the group to delete.
-         */
         function handleDeleteGroup(groupName) {
             if (confirm(`确定要删除分组“${groupName}”及其中的所有单词吗？此操作不可撤销。`)) {
                 delete errata[groupName];
@@ -751,12 +829,6 @@
                 renderErrataView();
             }
         }
-
-        /**
-         * Handles adding a new word to a specific errata group.
-         * @param {string} groupName - The name of the group.
-         * @param {string} word - The word to add.
-         */
         function handleAddWordToGroup(groupName, word) {
             const newWord = word.trim().toLowerCase();
             if (!newWord) {
@@ -765,7 +837,6 @@
             }
             if (!errata[groupName].includes(newWord)) {
                 errata[groupName].push(newWord);
-                // Also add to the main word list if it doesn't exist, so it can be studied
                 if (!allWords.some(w => w.word === newWord)) {
                     allWords.push({
                         word: newWord,
@@ -780,12 +851,6 @@
                 alert(`单词“${newWord}”已在该分组中。`);
             }
         }
-
-        /**
-         * Handles deleting a word from a specific errata group.
-         * @param {string} groupName - The name of the group.
-         * @param {string} word - The word to delete.
-         */
         function handleDeleteWordFromGroup(groupName, word) {
             const wordIndex = errata[groupName].indexOf(word);
             if (wordIndex > -1) {
@@ -794,30 +859,22 @@
                 renderErrataView();
             }
         }
-
-        /**
-         * Populates and manages the word source dropdown selector in the learn view.
-         */
         function updateWordSourceSelector() {
             const selectedValue = wordSourceSelector.value;
             wordSourceSelector.innerHTML = '';
-
             const defaultOption = document.createElement('option');
             defaultOption.value = 'default';
             defaultOption.textContent = '默认词库 (考研核心)';
             wordSourceSelector.appendChild(defaultOption);
-
             if (Object.keys(errata).length > 0) {
                 const allErrataOption = document.createElement('option');
                 allErrataOption.value = 'errata_all';
                 allErrataOption.textContent = '所有错词';
                 wordSourceSelector.appendChild(allErrataOption);
-                
                 const divider = document.createElement('option');
                 divider.disabled = true;
                 divider.textContent = '--- 错词分组 ---';
                 wordSourceSelector.appendChild(divider);
-
                 for (const groupName in errata) {
                     const groupOption = document.createElement('option');
                     groupOption.value = `errata_${groupName}`;
@@ -825,15 +882,8 @@
                     wordSourceSelector.appendChild(groupOption);
                 }
             }
-            // Try to restore previous selection
             wordSourceSelector.value = selectedValue || 'default';
         }
-
-        /**
-         * Adds a word to the 'known' or 'review' list and ensures it's removed from the other.
-         * @param {string} listName - 'known' or 'review'.
-         * @param {string} word - The word to add.
-         */
         function addToList(listName, word) {
             let list, otherList;
             if (listName === 'known') {
@@ -843,52 +893,22 @@
                 list = reviewWords;
                 otherList = knownWords;
             } else { return; }
-
             if (!list.includes(word)) { list.push(word); }
             const otherIndex = otherList.indexOf(word);
             if (otherIndex > -1) { otherList.splice(otherIndex, 1); }
-            
             saveState();
         }
 
-
         // --- 5. Core Learning Logic ---
-        /**
-         * Uses the browser's speech synthesis to speak a word.
-         * @param {string} text - The text to speak.
-         */
-        function speakWord(text) { 
-            if ('speechSynthesis' in window && text) { 
-                window.speechSynthesis.cancel(); 
-                const utterance = new SpeechSynthesisUtterance(text); 
-                utterance.lang = 'en-US'; 
-                utterance.rate = 0.9; 
-                window.speechSynthesis.speak(utterance); 
-            } 
-        }
-        
-        /**
-         * Shuffles an array in place.
-         * @param {Array} array - The array to shuffle.
-         */
-        function shuffleArray(array) { 
-            for (let i = array.length - 1; i > 0; i--) { 
-                const j = Math.floor(Math.random() * (i + 1)); 
-                [array[i], array[j]] = [array[j], array[i]]; 
-            } 
-        }
-        
-        /**
-         * Builds the learning queue based on the selected word source (default, all errata, or a specific errata group).
-         */
+        // (This section is mostly unchanged, logic for queue building remains the same)
+        function speakWord(text) { if ('speechSynthesis' in window && text) { window.speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'en-US'; utterance.rate = 0.9; window.speechSynthesis.speak(utterance); } }
+        function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[array[i], array[j]] = [array[j], array[i]]; } }
         function buildLearningQueue() {
             const source = wordSourceSelector.value;
             let sourceWords = [];
-
             if (source.startsWith('errata_')) {
                 const groupName = source.replace('errata_', '');
                 if (groupName === 'all') {
-                    // Get all unique words from all errata groups
                     const allErrataWords = new Set();
                     Object.values(errata).forEach(group => {
                         group.forEach(word => allErrataWords.add(word));
@@ -898,14 +918,10 @@
                     sourceWords = errata[groupName];
                 }
             }
-
             let wordObjectsToLearn;
             if (sourceWords.length > 0) {
-                 // For errata, we find the corresponding objects in allWords.
-                 // We study all of them, ignoring SRS for queue building, but updating it during review.
                  wordObjectsToLearn = allWords.filter(w => sourceWords.includes(w.word));
             } else {
-                // Default SRS logic for the main word list.
                 const today = new Date().setHours(0, 0, 0, 0);
                 const wordsToReview = allWords.filter(word => word.status === 'learning' && new Date(word.nextReviewDate).setHours(0,0,0,0) <= today);
                 const newWords = allWords.filter(word => word.status === 'new');
@@ -919,14 +935,8 @@
             shuffleArray(wordObjectsToLearn);
             learningQueue = wordObjectsToLearn;
         }
-
-        /**
-         * Displays the next word from the learning queue.
-         */
         function showNextWord() { 
-            // Build queue right before showing the next word to reflect any changes.
             buildLearningQueue(); 
-
             if (learningQueue.length > 0) {
                 currentWord = learningQueue.shift();
                 mainWordEl.textContent = currentWord.word;
@@ -934,28 +944,19 @@
                 speakBtn.classList.remove('hidden');
             } else {
                 const sourceName = wordSourceSelector.options[wordSourceSelector.selectedIndex].text;
-                // Display completion message and keep the source selector visible.
                 learnView.innerHTML = `<div id="word-source-selector-container" style="margin-bottom: 1rem;"><label for="word-source-selector">当前词库: </label><select id="word-source-selector"></select></div><div class="word-card" style="font-size: 1.5rem; color: #007bff;">词库“${sourceName}”本日任务完成！🎉</div>`;
                 const newSelector = document.getElementById('word-source-selector');
-                newSelector.onchange = () => { 
-                    // When a new source is selected, rebuild the learn view and start over.
-                    // A simple reload is an easy way to reset the state.
-                    window.location.reload();
-                }; 
-                updateWordSourceSelector(); // Repopulate the selector
+                newSelector.onchange = () => { window.location.reload(); }; 
+                updateWordSourceSelector();
                 speakBtn.classList.add('hidden');
             }
         }
         
-        /**
-         * Fetches word details (pronunciation, definition) from the backend API.
-         */
+        // This function remains, as it uses the Youdao API which was requested to be kept.
         async function loadWordDetails() {
              pronunciationEl.textContent = '...';
              definitionEl.textContent = '正在获取中文释义...';
              try {
-                 // NOTE: This assumes a local backend server is running at '/api/get-definition'.
-                 // This will not work in a static file environment without a running server.
                  const response = await fetch('/api/get-definition', { 
                      method: 'POST',
                      headers: { 'Content-Type': 'application/json' },
@@ -971,20 +972,14 @@
              } catch (error) {
                  console.error("加载单词详情失败:", error);
                  pronunciationEl.textContent = `[${currentWord.word}]`;
-                 definitionEl.textContent = `释义加载失败。请检查网络连接或后端API是否正常运行。`;
+                 definitionEl.textContent = `释义加载失败。请检查网络连接或本地服务器是否正常运行。`;
              }
         }
 
-        /**
-         * Sets up a new sentence challenge.
-         */
         function startNewChallenge() { 
             const wordCount = parseInt(wordCountSelector.value); 
             const availableWords = allWords.filter(w => w.status !== 'known'); 
-            if (availableWords.length < wordCount) { 
-                alert(`词库中可供挑战的单词不足${wordCount}个！`); 
-                return; 
-            } 
+            if (availableWords.length < wordCount) { alert(`词库中可供挑战的单词不足${wordCount}个！`); return; } 
             shuffleArray(availableWords); 
             challengeWords = availableWords.slice(0, wordCount).map(w => w.word); 
             challengeWordsDisplay.innerHTML = ''; 
@@ -1012,15 +1007,12 @@
             btnNextChallenge.classList.add('hidden'); 
         }
         
-        /**
-         * Sets up a new translation challenge.
-         */
+        // --- 6. Connect to Local AI ---
+        // NEW: All AI functions now call our local server, passing the AI config.
+
         async function startNewTranslationChallenge() {
             const topic = translationTopicInput.value.trim();
-            if (!topic) {
-                alert('请输入一个中文主题！');
-                return;
-            }
+            if (!topic) { alert('请输入一个中文主题！'); return; }
             translationChallengeSetup.classList.add('hidden');
             translationChallengeArea.classList.remove('hidden');
             translationAiFeedback.classList.add('hidden');
@@ -1029,45 +1021,44 @@
             btnNextTranslationChallenge.classList.add('hidden');
             translationChallengeInput.value = '';
             translationLoadingSpinner.classList.remove('hidden');
-            translationChineseSentenceEl.textContent = 'AI 正在为您生成中文句子...';
+            translationChineseSentenceEl.textContent = '本地AI正在为您生成中文句子...';
             try {
-                // NOTE: This assumes a local backend server is running at '/api/get-translation-challenge'.
                 const response = await fetch('/api/get-translation-challenge', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic })
+                    body: JSON.stringify({ topic, aiConfig }) // Pass AI config
                 });
-                if (!response.ok) throw new Error('获取中文句子失败');
-                
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.details || '获取中文句子失败');
+                }
                 const data = await response.json();
                 currentChineseSentence = data.chinese_sentence;
                 translationChineseSentenceEl.textContent = currentChineseSentence;
             } catch (error) {
-                translationChineseSentenceEl.textContent = `❌ 获取句子失败: ${error.message}`;
+                translationChineseSentenceEl.textContent = `❌ 获取句子失败: ${error.message}. 请检查本地服务器和Ollama是否正在运行。`;
             } finally {
                 translationLoadingSpinner.classList.add('hidden');
             }
         }
 
-        // --- 6. Connect to Real AI (Placeholder) ---
-        // NOTE: These functions require a backend server to process the requests.
         async function getRealAiSentenceCheck(words, sentence) {
             try {
                 const response = await fetch('/api/check-sentence', { 
                     method: 'POST',
                     headers: {'Content-Type': 'application/json',},
-                    body: JSON.stringify({ words, sentence }),
+                    body: JSON.stringify({ words, sentence, aiConfig }), // Pass AI config
                 });
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);
+                    throw new Error(errorData.details || 'AI服务器返回错误');
                 }
                 const data = await response.json();
                 let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考例句：</strong> ${data.correct_example}</p>`;
                 return feedbackHTML;
             } catch (error) {
-                console.error("连接AI失败:", error);
-                return `❌ 连接AI时出错。这是一个本地演示。<br><strong>AI老师点评：</strong>句子很棒！<br><strong>参考例句：</strong>This is a great sentence for the word(s): ${words.join(', ')}.`;
+                console.error("连接本地AI失败:", error);
+                return `❌ 连接本地AI时出错: ${error.message}。请检查本地服务器和Ollama是否正在运行。`;
             }
         }
         async function getRealAiTranslationCheck(original, translation) {
@@ -1075,28 +1066,24 @@
                 const response = await fetch('/api/check-translation', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ original_chinese: original, user_translation: translation })
+                    body: JSON.stringify({ original_chinese: original, user_translation: translation, aiConfig }) // Pass AI config
                 });
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(`AI服务器返回错误: ${errorData.error || response.statusText}`);
+                    throw new Error(errorData.details || 'AI服务器返回错误');
                 }
                 const data = await response.json();
                 let feedbackHTML = `<p><strong>AI老师点评：</strong></p><p>${data.explanation}</p><p><strong>参考翻译：</strong> ${data.better_translation}</p>`;
                 return feedbackHTML;
             } catch (error) {
                 console.error("连接翻译批改AI失败:", error);
-                return `❌ 请求AI批改时出错。这是一个本地演示。<br><strong>AI老师点评：</strong>翻译得很好！<br><strong>参考翻译：</strong>This is a better translation.`;
+                return `❌ 请求AI批改时出错: ${error.message}。请检查本地服务器和Ollama是否正在运行。`;
             }
         }
 
 
         // --- 7. Event Handlers ---
-        /**
-         * Handles deleting a word from the known or review lists.
-         * @param {string} word - The word to delete.
-         * @param {string} listName - 'known' or 'review'.
-         */
+        // (This section has minor changes to call the new AI functions)
         function handleDeleteWord(word, listName) {
             if (listName === 'known') {
                 knownWords = knownWords.filter(w => w !== word);
@@ -1107,38 +1094,23 @@
             }
             saveState();
         }
-
-        /**
-         * Handles the click event for adding a new word to the main dictionary.
-         */
         function handleAddWordClick() {
             const newWordStr = addWordInput.value.trim().toLowerCase();
             if (!newWordStr) { alert('请输入一个单词。'); return; }
             if (allWords.some(w => w.word === newWordStr)) { alert(`单词 "${newWordStr}" 已存在于您的主词库中。`); return; }
-
-            const newWordObj = {
-                word: newWordStr,
-                status: 'learning',
-                srsLevel: 0,
-                nextReviewDate: new Date().toISOString()
-            };
-
+            const newWordObj = { word: newWordStr, status: 'learning', srsLevel: 0, nextReviewDate: new Date().toISOString() };
             allWords.push(newWordObj);
-            addToList('review', newWordStr); // Also add to review list
-            saveState(); // Save state after adding the word
+            addToList('review', newWordStr);
+            saveState();
             addWordInput.value = '';
             alert(`单词 "${newWordStr}" 已成功添加到主词库和待复习列表！`);
-            // Refresh the view to show the new word if conditions are met
             showNextWord(); 
         }
-        
         speakBtn.addEventListener('click', () => { if (currentWord) { speakWord(currentWord.word); } });
         addWordBtn.addEventListener('click', handleAddWordClick);
-        
         btnKnown.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
             if (wordIndex > -1) {
-                // This logic correctly handles the status for SRS, even for errata words
                 allWords[wordIndex].status = 'known';
                 allWords[wordIndex].srsLevel = -1;
                 allWords[wordIndex].nextReviewDate = null;
@@ -1147,7 +1119,6 @@
             updateUiForState('show_answer');
             loadWordDetails();
         });
-
         btnUnknown.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
             if (wordIndex > -1) {
@@ -1161,12 +1132,7 @@
             updateUiForState('make_sentence');
             loadWordDetails();
         });
-
-        btnConfirmKnown.addEventListener('click', () => { 
-            saveState(); // Save state before moving to next word
-            showNextWord(); 
-        });
-
+        btnConfirmKnown.addEventListener('click', () => { saveState(); showNextWord(); });
         btnCorrection.addEventListener('click', () => { 
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
              if (wordIndex > -1) {
@@ -1179,7 +1145,6 @@
             }
             updateUiForState('make_sentence'); 
         });
-
         btnSubmitSentence.addEventListener('click', async () => { 
             const userSentence = sentenceInputEl.value.trim();
             if (userSentence) {
@@ -1189,7 +1154,7 @@
                 try {
                     feedback = await getRealAiSentenceCheck([currentWord.word], userSentence);
                 } catch (e) {
-                    feedback = `❌ 请求AI时发生未知错误。`;
+                    feedback = `❌ 请求AI时发生未知错误: ${e.message}`;
                 } finally {
                     loadingSpinner.classList.add('hidden');
                     aiFeedbackEl.innerHTML = feedback;
@@ -1199,7 +1164,6 @@
                 alert("请输入一个句子！");
             } 
         });
-        
         btnFinishLearning.addEventListener('click', () => {
             const wordIndex = allWords.findIndex(w => w.word === currentWord.word);
             if (wordIndex > -1) {
@@ -1211,17 +1175,14 @@
                 nextReviewDate.setDate(nextReviewDate.getDate() + interval);
                 allWords[wordIndex].nextReviewDate = nextReviewDate.toISOString();
             }
-            saveState(); // Save state before moving to next word
+            saveState();
             showNextWord();
         });
-        
         btnStartChallenge.addEventListener('click', startNewChallenge);
         btnNextChallenge.addEventListener('click', startNewChallenge);
-        
         btnSubmitChallenge.addEventListener('click', async () => {
             const userSentence = challengeSentenceInput.value.trim();
             if (!userSentence) { alert('请输入您的句子！'); return; }
-
             const unknownWordsCheckboxes = challengeWordsDisplay.querySelectorAll('input[type="checkbox"]:checked');
             unknownWordsCheckboxes.forEach(checkbox => {
                 const wordToMark = checkbox.dataset.word;
@@ -1237,14 +1198,13 @@
                 }
             });
             saveState();
-
             challengeAiFeedback.classList.add('hidden');
             challengeLoadingSpinner.classList.remove('hidden');
             let feedback = '';
             try {
                 feedback = await getRealAiSentenceCheck(challengeWords, userSentence);
             } catch (e) {
-                feedback = `❌ 请求AI时发生未知错误。`;
+                feedback = `❌ 请求AI时发生未知错误: ${e.message}`;
             } finally {
                 challengeLoadingSpinner.classList.add('hidden');
                 challengeAiFeedback.innerHTML = feedback;
@@ -1253,17 +1213,14 @@
                 btnNextChallenge.classList.remove('hidden');
             }
         });
-
         modeLearnBtn.addEventListener('click', () => switchView('learn'));
         modeChallengeBtn.addEventListener('click', () => switchView('challenge'));
         modeTranslationChallengeBtn.addEventListener('click', () => switchView('translation-challenge'));
         modeKnownListBtn.addEventListener('click', () => switchView('known-list'));
         modeReviewListBtn.addEventListener('click', () => switchView('review-list'));
-        // NEW FEATURE: Errata event listeners
         modeErrataBtn.addEventListener('click', () => switchView('errata'));
         createGroupBtn.addEventListener('click', handleCreateGroup);
         wordSourceSelector.addEventListener('change', showNextWord);
-
         btnStartTranslationChallenge.addEventListener('click', startNewTranslationChallenge);
         btnNextTranslationChallenge.addEventListener('click', () => {
             translationChallengeSetup.classList.remove('hidden');
@@ -1273,14 +1230,13 @@
         btnSubmitTranslation.addEventListener('click', async () => {
             const userTranslation = translationChallengeInput.value.trim();
             if (!userTranslation) { alert('请输入您的翻译！'); return; }
-            
             translationAiFeedback.classList.add('hidden');
             translationLoadingSpinner.classList.remove('hidden');
             let feedback = '';
             try {
                 feedback = await getRealAiTranslationCheck(currentChineseSentence, userTranslation);
             } catch (e) {
-                feedback = `❌ 请求AI时发生未知错误。`;
+                feedback = `❌ 请求AI时发生未知错误: ${e.message}`;
             } finally {
                 translationLoadingSpinner.classList.add('hidden');
                 translationAiFeedback.innerHTML = feedback;
@@ -1290,10 +1246,24 @@
             }
         });
 
+        // NEW: AI Settings Modal Handlers
+        aiSettingsBtn.addEventListener('click', () => {
+            ollamaUrlInput.value = aiConfig.url;
+            ollamaModelInput.value = aiConfig.model;
+            aiSettingsModal.classList.remove('hidden');
+        });
+        closeAiSettingsBtn.addEventListener('click', () => {
+            aiSettingsModal.classList.add('hidden');
+        });
+        saveAiSettingsBtn.addEventListener('click', () => {
+            aiConfig.url = ollamaUrlInput.value.trim() || 'http://localhost:11434';
+            aiConfig.model = ollamaModelInput.value.trim() || 'llama3';
+            saveAiConfig();
+            aiSettingsModal.classList.add('hidden');
+            alert('AI设置已保存！');
+        });
+
         // --- 8. Initialize Application ---
-        /**
-         * Initializes the application on page load.
-         */
         async function initializeApp() {
             loadState();
             if (allWords.length === 0) {
@@ -1302,34 +1272,27 @@
                     const response = await fetch(WORD_LIST_URL);
                     if (!response.ok) throw new Error('无法获取云端词库');
                     const wordList = await response.json();
-                    
                     let initialWords = [];
-                    // Handle both simple array and object-based word lists from the source URL
                     if (Array.isArray(wordList)) {
                        initialWords = wordList;
                     } else {
                        const firstListName = Object.keys(wordList)[0];
                        initialWords = firstListName ? wordList[firstListName] : [];
                     }
-
                     if (initialWords.length === 0) throw new Error('云端词库为空或格式不正确');
-
-                    allWords = initialWords.map(word => ({ word: word.toLowerCase(), status: 'new', srsLevel: 0, nextReviewDate: null }));
+                    allWords = initialWords.map(word => ({ word: String(word).toLowerCase(), status: 'new', srsLevel: 0, nextReviewDate: null }));
                     saveState();
                 } catch (error) {
                     learnView.innerHTML = `<div class="word-card">初始化失败: ${error.message}</div>`;
                     return;
                 }
             }
-            // NEW FEATURE: Update selector on init
             updateWordSourceSelector();
             switchView('learn');
             showNextWord();
         }
 
-        // Start the application
         initializeApp();
     </script>
 </body>
 </html>
-

@@ -1,36 +1,39 @@
 // api/check-sentence.js
 
+// 使用Node.js的fetch
+const fetch = require('node-fetch');
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
-  const { words, sentence } = req.body;
-  if (!words || !sentence || words.length === 0) {
-    return res.status(400).json({ error: 'Words and sentence are required.' });
+  // 从请求体中获取单词、句子以及AI配置
+  const { words, sentence, aiConfig } = req.body;
+  if (!words || !sentence || !aiConfig || !aiConfig.url || !aiConfig.model) {
+    return res.status(400).json({ error: 'Words, sentence, and AI config are required.' });
   }
 
-  const apiKey = process.env.GOOGLE_API_KEY;
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
   const wordListString = Array.isArray(words) ? words.join(', ') : words;
+  
+  // 为Ollama准备的Prompt
+  const prompt = `You are a friendly and professional English teacher. Your task is to determine if the sentence "${sentence}" correctly and naturally uses all of the following words: "${wordListString}". 
+  You must respond ONLY with a valid JSON object in the following format. Do not include any other text, explanations, or markdown formatting.
+  {
+    "is_correct": boolean,
+    "explanation": "Provide a brief explanation in Chinese about whether the usage is natural or if there are any issues.",
+    "correct_example": "Provide a correct and natural example sentence in English that uses all the given words."
+  }`;
 
+  // 为Ollama准备的Payload
   const payload = {
-    contents: [{
-      parts: [{
-        text: `你是一个友善且专业的英语老师。请判断句子 "${sentence}" 是否正确地使用了以下所有单词: "${wordListString}"。你的回答必须严格遵循以下JSON格式，所有内容都必须使用中文，不要包含任何额外的解释或markdown标记：
-        {
-          "is_correct": boolean,
-          "explanation": "简短解释，说明用法是否地道，或者句子有什么问题",
-          "correct_example": "提供一个使用了所有这些单词的正确、地道的例句"
-        }`
-      }]
-    }],
-    generationConfig: {
-      response_mime_type: "application/json",
-    }
+    model: aiConfig.model,
+    prompt: prompt,
+    format: "json", // 请求Ollama直接输出JSON
+    stream: false
   };
 
   try {
-    const response = await fetch(apiUrl, {
+    const response = await fetch(`${aiConfig.url}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -38,16 +41,16 @@ module.exports = async (req, res) => {
 
     if (!response.ok) {
       const errorBody = await response.text();
-      throw new Error(`Gemini API error: ${response.status} ${errorBody}`);
+      throw new Error(`Ollama API error: ${response.status} ${errorBody}`);
     }
 
     const data = await response.json();
-    // Gemini API with json response_mime_type returns the JSON directly in the text part.
-    const feedbackJson = JSON.parse(data.candidates[0].content.parts[0].text);
+    // Ollama在非流式JSON模式下，会把JSON字符串放在response字段里
+    const feedbackJson = JSON.parse(data.response);
     res.status(200).json(feedbackJson);
 
   } catch (error) {
     console.error('Check Sentence Backend Error:', error);
-    res.status(500).json({ error: 'Failed to get feedback from AI.', details: error.message });
+    res.status(500).json({ error: 'Failed to get feedback from local AI.', details: error.message });
   }
 };
