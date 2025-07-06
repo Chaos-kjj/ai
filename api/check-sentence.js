@@ -15,14 +15,16 @@ module.exports = async (req, res) => {
 
   const wordListString = Array.isArray(words) ? words.join(', ') : words;
   
-  // 为Ollama准备的Prompt
-  const prompt = `You are a friendly and professional English teacher. Your task is to determine if the sentence "${sentence}" correctly and naturally uses all of the following words: "${wordListString}". 
-  You must respond ONLY with a valid JSON object in the following format. Do not include any other text, explanations, or markdown formatting.
-  {
-    "is_correct": boolean,
-    "explanation": "Provide a brief explanation in Chinese about whether the usage is natural or if there are any issues.",
-    "correct_example": "Provide a correct and natural example sentence in English that uses all the given words."
-  }`;
+  // 为Ollama准备的优化后Prompt
+  const prompt = `You are a professional English teacher. Your task is to evaluate if the sentence "${sentence}" correctly uses all of the following words: "${wordListString}".
+You must respond ONLY with a valid JSON object. Do not add any text outside the JSON object.
+The JSON object structure is:
+{
+  "is_correct": boolean,
+  "explanation": "A brief explanation about the user's sentence.",
+  "correct_example": "A correct and natural example sentence using all the given words."
+}
+IMPORTANT INSTRUCTION: The value for the "explanation" field MUST be written in Chinese. The value for the "correct_example" field MUST be written in English.`;
 
   // 为Ollama准备的Payload
   const payload = {

@@ -10,15 +10,18 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Original sentence, user translation, and AI config are required.' });
   }
 
-  const prompt = `You are a professional Chinese-English translation teacher. Your task is to evaluate whether the user's English translation accurately and naturally expresses the meaning of the original Chinese sentence.
-  The original Chinese sentence is: "${original_chinese}".
-  The user's English translation is: "${user_translation}".
-  You must respond ONLY with a valid JSON object in the following format. All string values in the JSON must be in Chinese.
-  {
-    "is_correct": boolean,
-    "explanation": "Comment on the user's translation, pointing out its strengths and areas for improvement.",
-    "better_translation": "Provide one or more improved, more elegant, or more natural reference translations."
-  }`;
+  // 优化后的Prompt，明确指示explanation用中文，better_translation用英文
+  const prompt = `You are a professional Chinese-English translation teacher. Your task is to evaluate the user's translation.
+Original Chinese sentence: "${original_chinese}".
+User's English translation: "${user_translation}".
+You must respond ONLY with a valid JSON object. Do not add any text outside the JSON object.
+The JSON object structure is:
+{
+  "is_correct": boolean,
+  "explanation": "Comment on the user's translation, pointing out its strengths and areas for improvement.",
+  "better_translation": "Provide one or more improved, more elegant, or more natural reference translations."
+}
+IMPORTANT INSTRUCTION: The value for the "explanation" field MUST be written in Chinese. The value for the "better_translation" field MUST be written in English.`;
   
   const payload = {
     model: aiConfig.model,
